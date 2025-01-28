@@ -26,6 +26,11 @@ import AssinaturasorcScreen from './src/screens/AssinaturasOrcScreen';
 import checklistForm from './src/screens/checklistForm';
 import ReplicaOrcamento from  './src/screens/ReplicaOrcamento';
 import ConsultaAssinatura from './src/screens/ConsultaAssinatura';
+import credenciadoscreen from './src/screens/credenciadoscreen';
+import OrcCred from './src/screens/OrcCred';
+import ItemForm from './src/screens/ItemForm';
+import checklistCredencido from './src/screens/checklistCredencido';
+import RealizarChecklist from './src/screens/RealizarChecklist';
 const Stack = createStackNavigator();
 
 const App = () => {
@@ -57,8 +62,12 @@ const App = () => {
         <Stack.Screen name="checklistForm" component={checklistForm} options={{ title: 'Checklist' }} />
         <Stack.Screen name="ReplicaOrcamento" component={ReplicaOrcamento} options={{ title: 'Replicar' }} />
         <Stack.Screen name="ConsultaAssinatura" component={ConsultaAssinatura} options={{ title: 'Assinatura' }} />
-
-      </Stack.Navigator>
+        <Stack.Screen name="credenciadoscreen" component={credenciadoscreen} options={{ title: 'Orçamentação' }} />
+        <Stack.Screen name="OrcCred" component={OrcCred} options={{ title: 'Orçamentação' }} />
+        <Stack.Screen name="ItemForm" component={ItemForm} options={{ title: 'Orçamentação' }} />
+        <Stack.Screen name="checklistCredencido" component={checklistCredencido} options={{ title: 'Checklist' }} />
+        <Stack.Screen name="RealizarChecklist" component={RealizarChecklist} options={{ title: 'Checklist' }} />
+        </Stack.Navigator>
     </NavigationContainer>
   );
 };

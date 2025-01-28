@@ -195,14 +195,46 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#f5f5f5' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#333' },
-  item: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, padding: 10, backgroundColor: '#fff', borderRadius: 8 },
-  itemText: { fontSize: 18, color: '#333' },
-  radioButtonsContainer: { flexDirection: 'row', alignItems: 'center' },
-  radioButton: { padding: 10, marginHorizontal: 5, borderRadius: 5, backgroundColor: '#ddd' },
+  item: {
+    flexDirection: 'column', // Empilha texto e botões
+    justifyContent: 'space-between',
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+  },
+  itemText: {
+    fontSize: 18,
+    color: '#333',
+    marginBottom: 10, // Espaçamento entre texto e botões
+    flexWrap: 'wrap', // Permite quebra de linha no texto
+  },
+  radioButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly', // Garante espaçamento uniforme
+    alignItems: 'center',
+    flexWrap: 'wrap', // Botões se ajustam se o espaço for pequeno
+  },
+  radioButton: {
+    padding: 10,
+    marginHorizontal: 5,
+    marginVertical: 5, // Adiciona espaçamento vertical
+    borderRadius: 5,
+    backgroundColor: '#ddd',
+    minWidth: 80, // Garante que os botões tenham um tamanho mínimo
+    alignItems: 'center', // Centraliza o texto dentro do botão
+  },
   selectedButton: { backgroundColor: '#80deea' },
   radioText: { fontSize: 16 },
-  finalizarButton: { backgroundColor: '#007bff', borderRadius: 8, padding: 15, alignItems: 'center', marginTop: 20 },
+  finalizarButton: {
+    backgroundColor: '#007bff',
+    borderRadius: 8,
+    padding: 15,
+    alignItems: 'center',
+    marginTop: 20,
+  },
   finalizarButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });
+
 
 export default ChecklistItemsScreen;

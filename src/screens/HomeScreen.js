@@ -4,224 +4,73 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HomeScreen = ({ navigation, route }) => {
   const [userData, setUserData] = useState(null);
-  const { cadCodigo, cadNome, nomeNivel, nivelAcesso } = route.params || {}; // Obter dados passados
+  const { cadCodigo, cadNome, nomeNivel, nivelAcesso } = route.params || {};
 
   useEffect(() => {
     const getUserData = async () => {
       try {
         const user = await AsyncStorage.getItem('userData');
         if (user !== null) {
-          const { cad_codigo, cadNome, nomeNivel, nivelAcesso } = JSON.parse(user);
-          setUserData({ cadCodigo, cadNome, nomeNivel, nivelAcesso }); // Atualiza o estado
+          const { cadCodigo, cadNome, nomeNivel, nivelAcesso } = JSON.parse(user);
+          setUserData({ cadCodigo, cadNome, nomeNivel, nivelAcesso });
         }
       } catch (error) {
         console.log('Erro ao carregar dados:', error);
       }
     };
-  
+
     getUserData();
   }, []);
 
   const renderCards = () => {
-    const commonParams = { cadCodigo, cadNome, nomeNivel, nivelAcesso  }; // Parâmetros comuns
+    const commonParams = { cadCodigo, cadNome, nomeNivel, nivelAcesso };
 
-    if (nivelAcesso === 999) {
-      //ADM
-      return (
-        <>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('CheckList', commonParams)}
-          >
-            <Image source={require('../../assets/icons/checklist.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>CheckList</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('Rastreamento', commonParams)}
-          >
-            <Image source={require('../../assets/icons/rastreamento.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Rastreamento</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('OrdensServico', commonParams)}
-          >
-            <Image source={require('../../assets/icons/manutencao.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Ordens de Serviço</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('relatoriosScreens', commonParams)}
-          >
-            <Image source={require('../../assets/icons/relatorios.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Relatórios</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('GerenciaRoScreen', commonParams)}
-          >
-            <Image source={require('../../assets/icons/relatorios.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Gerencia R.O</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('Manutencao', commonParams)}
-          >
-            <Image source={require('../../assets/icons/manutencao.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>DashBoards</Text>
-          </TouchableOpacity>
-        </>
-      );
+    const permissoes = {
+      999: ['CheckList', 'Rastreamento', 'OrdensServico', 'relatoriosScreens', 'GerenciaRoScreen', 'Manutencao'], // Administrador
+      222: ['CheckList', 'OrdensServico', 'GerenciaRoScreen'], // Operador Suprimentos
+      223: ['CheckList', 'OrdensServico', 'GerenciaRoScreen'], // Gerente Operação
+      224: ['CheckList', 'OrdensServico', 'GerenciaRoScreen'], // Diretor Operação
+      225: ['CheckList', 'OrdensServico', 'GerenciaRoScreen'], // Coordenador Operação
+      227: ['CheckList', 'OrdensServico', 'GerenciaRoScreen'], // Supervisor de Frota
+      228: ['CheckList', 'OrdensServico', 'GerenciaRoScreen'], // Gerente de Frota
+      229: ['CheckList', 'OrdensServico', 'GerenciaRoScreen'], // Diretor de Frota
+      800: ['CheckList', 'OrdensServico', 'GerenciaRoScreen'], // Gestor Operacional
+      995: ['CheckList', 'OrdensServico', 'GerenciaRoScreen'], // Gestor da Frota
+      250: ['OrdensServico'], // Orçamentista
+      251: ['OrdensServico'], // Orçamentista - Credenciados
+      252: ['CheckList', 'GerenciaRoScreen'], // Motorista
+      960: ['CheckList', 'OrdensServico', 'GerenciaRoScreen'], // Gestão de Frota Lança O.S
+      997: ['CheckList', 'OrdensServico', 'GerenciaRoScreen'], // Gestão de Frota Avaliador
+      998: ['CheckList', 'OrdensServico', 'GerenciaRoScreen'], // Gestão de Frota Nível 1
+    };
+
+    const opcoes = [
+      { id: '1', titulo: 'CheckList', destino: 'CheckList', icone: require('../../assets/icons/checklist.png') },
+      { id: '2', titulo: 'Rastreamento', destino: 'Rastreamento', icone: require('../../assets/icons/rastreamento.png') },
+      { id: '3', titulo: 'Ordens de Serviço', destino: 'OrdensServico', icone: require('../../assets/icons/manutencao.png') },
+      { id: '4', titulo: 'Relatórios', destino: 'relatoriosScreens', icone: require('../../assets/icons/relatorios.png') },
+      { id: '5', titulo: 'Gerencia R.O', destino: 'GerenciaRoScreen', icone: require('../../assets/icons/relatorios.png') },
+      { id: '6', titulo: 'DashBoards', destino: 'Manutencao', icone: require('../../assets/icons/manutencao.png') },
+    ];
+
+    // Filtrar as opções com base no nível de acesso
+    const permissoesUsuario = permissoes[nivelAcesso] || [];
+    const opcoesFiltradas = opcoes.filter(opcao => permissoesUsuario.includes(opcao.destino));
+
+    if (opcoesFiltradas.length === 0) {
+      return <Text style={styles.infoText}>Você não tem acesso a nenhuma funcionalidade.</Text>;
     }
 
-    if (nivelAcesso == 252) {
-      //MOTORISTA
-      return (
-        <>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('CheckList', commonParams)}
-          >
-            <Image source={require('../../assets/icons/checklist.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>CheckList</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('Rastreamento', commonParams)}
-          >
-            <Image source={require('../../assets/icons/rastreamento.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Rastreamento</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('OrdensServico', commonParams)}
-          >
-            <Image source={require('../../assets/icons/manutencao.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Ordens de Serviço</Text>
-          </TouchableOpacity>
-        
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('GerenciaRoScreen', commonParams)}
-          >
-            <Image source={require('../../assets/icons/relatorios.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Gerencia R.O</Text>
-          </TouchableOpacity>
-       
-        </>
-      );
-    }else if (nivelAcesso === 251 || nivelAcesso === 250) {
-      //ORCAMENTISTA
-      return (
-        <>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('OrdensServico', commonParams)}
-          >
-            <Image source={require('../../assets/icons/manutencao.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Ordens de Serviço</Text>
-          </TouchableOpacity>
-        </>
-      );
-    }
-
-  
-    if(nivelAcesso == 223 || nivelAcesso == 224 || nivelAcesso == 225 || nivelAcesso == 227 ||  nivelAcesso == 228 ||  nivelAcesso == 229 ) {
-
-      //GERENTE OPERAÇÃO
-      //DIRETOR OPERAÇÃO
-      //COORDENADOR OPERAÇÃO
-      //SUPERVISOR DE FROTA
-      //GERENTE DE FROTA
-      //DIRETOR DE FROTA
-      
-      return (
-        <>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('CheckList', commonParams)}
-          >
-            <Image source={require('../../assets/icons/checklist.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>CheckList</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('Rastreamento', commonParams)}
-          >
-            <Image source={require('../../assets/icons/rastreamento.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Rastreamento</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('OrdensServico', commonParams)}
-          >
-            <Image source={require('../../assets/icons/manutencao.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Ordens de Serviço</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('relatoriosScreens', commonParams)}
-          >
-            <Image source={require('../../assets/icons/relatorios.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Relatórios</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('GerenciaRoScreen', commonParams)}
-          >
-            <Image source={require('../../assets/icons/relatorios.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Gerencia R.O</Text>
-          </TouchableOpacity>
-       
-        </>
-      );
-    }
-    if(nivelAcesso == 995 || nivelAcesso == 960 || nivelAcesso == 997 || nivelAcesso == 222){
-      return (
-        <>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('CheckList', commonParams)}
-          >
-            <Image source={require('../../assets/icons/checklist.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>CheckList</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('Rastreamento', commonParams)}
-          >
-            <Image source={require('../../assets/icons/rastreamento.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Rastreamento</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('OrdensServico', commonParams)}
-          >
-            <Image source={require('../../assets/icons/manutencao.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Ordens de Serviço</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('relatoriosScreens', commonParams)}
-          >
-            <Image source={require('../../assets/icons/relatorios.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Relatórios</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('GerenciaRoScreen', commonParams)}
-          >
-            <Image source={require('../../assets/icons/relatorios.png')} style={styles.cardIcon} />
-            <Text style={styles.cardText}>Gerencia R.O</Text>
-          </TouchableOpacity>
-       
-        </>
-      );
-
-
-    }
-    return null;
+    return opcoesFiltradas.map(opcao => (
+      <TouchableOpacity
+        key={opcao.id}
+        style={styles.card}
+        onPress={() => navigation.navigate(opcao.destino, commonParams)}
+      >
+        <Image source={opcao.icone} style={styles.cardIcon} />
+        <Text style={styles.cardText}>{opcao.titulo}</Text>
+      </TouchableOpacity>
+    ));
   };
 
   return (
@@ -239,9 +88,7 @@ const HomeScreen = ({ navigation, route }) => {
       </View>
 
       {/* Cards principais */}
-      <ScrollView contentContainerStyle={styles.cardsContainer}>
-        {renderCards()}
-      </ScrollView>
+      <ScrollView contentContainerStyle={styles.cardsContainer}>{renderCards()}</ScrollView>
     </View>
   );
 };
@@ -309,6 +156,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     resizeMode: 'contain',
+  },
+  infoText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 

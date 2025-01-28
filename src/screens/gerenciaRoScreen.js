@@ -11,26 +11,21 @@ import {
 import { Card, Button, Icon } from "react-native-elements";
 
 const API_BASE_URL = "https://syntron.com.br/sistemas/apis/ordensSevico.php?status=Ro";
-const API_ASSINATURAS_URL = "https://syntron.com.br/sistemas/apis/regsitro_assinatura.php";
-const API_ENVIAR_ORCAMENTO = "https://syntron.com.br/sistemas/apis/enviarOrcamento.php";
+const API_ALTERAR = "https://syntron.com.br/sistemas/apis/regsitro_assinatura.php";
 
 const GerenciaRoScreen = ({ navigation, route = { params: {} } }) => {
   const { cadCodigo = null, nivelAcesso = null } = route.params; // Valores padrão para evitar erros
   const [ordens, setOrdens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOS, setExpandedOS] = useState(null);
-  const [assinaturas, setAssinaturas] = useState({});
+  const [assinaturas, setAssinaturas] = useState({}); // Armazena assinaturas por OS
 
+  // Busca Ordens de Serviço
   useEffect(() => {
-    console.log("cadCodigo:", cadCodigo);
-    console.log("nivelAcesso:", nivelAcesso);
-  }, [cadCodigo, nivelAcesso]);
-
-  useEffect(() => {
+    setLoading(true);
     fetch(API_BASE_URL)
       .then((response) => response.json())
       .then((data) => {
-        console.log("Dados recebidos da API:", data);
         setOrdens(data);
         setLoading(false);
       })
@@ -41,21 +36,9 @@ const GerenciaRoScreen = ({ navigation, route = { params: {} } }) => {
       });
   }, []);
 
-  const fetchAssinaturas = (registro) => {
-    fetch(`${API_ASSINATURAS_URL}?registro=${registro}`)
-      .then((response) => response.json())
-      .then((data) => {
-        console.log(`Assinaturas para registro ${registro}:`, data);
-        setAssinaturas((prev) => ({ ...prev, [registro]: data.data || [] }));
-      })
-      .catch((error) => {
-        console.error(`Erro ao buscar assinaturas para registro ${registro}:`, error);
-        setAssinaturas((prev) => ({ ...prev, [registro]: [] }));
-      });
-  };
-
+  // Envia OS para orçamentação
   const enviarParaOrcamentacao = (osCodigo) => {
-    fetch(`${API_ENVIAR_ORCAMENTO}?os_codigo=${osCodigo}`, {
+    fetch(`${API_ALTERAR}?acao=altera&os_codigo=${osCodigo}`, {
       method: "POST",
     })
       .then((response) => response.json())
@@ -64,11 +47,37 @@ const GerenciaRoScreen = ({ navigation, route = { params: {} } }) => {
           Alert.alert("Erro", data.message);
         } else {
           Alert.alert("Sucesso", "Ordem de Serviço enviada para orçamentação com sucesso!");
+          setOrdens((prev) =>
+            prev.map((ordem) =>
+              ordem.os_codigo === osCodigo
+                ? { ...ordem, os_status_nome: "Enviado para Orçamentação" }
+                : ordem
+            )
+          );
         }
       })
       .catch((error) => {
         console.error("Erro ao enviar para orçamentação:", error);
         Alert.alert("Erro", "Erro ao enviar para orçamentação.");
+      });
+  };
+
+  // Busca assinaturas realizadas para uma OS
+  const fetchAssinaturas = (registro) => {
+    fetch(`${API_ALTERAR}?acao=buscar`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ registro }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        setAssinaturas((prev) => ({ ...prev, [registro]: data.data || [] }));
+      })
+      .catch((error) => {
+        console.error(`Erro ao buscar assinaturas para registro ${registro}:`, error);
+        setAssinaturas((prev) => ({ ...prev, [registro]: [] }));
       });
   };
 
@@ -121,7 +130,7 @@ const GerenciaRoScreen = ({ navigation, route = { params: {} } }) => {
               onPress={() => enviarParaOrcamentacao(item.os_codigo)}
             />
             <Button
-              title="Assinatura"
+              title="Assinar"
               buttonStyle={styles.addButton}
               titleStyle={styles.addButtonText}
               onPress={() =>
@@ -135,7 +144,7 @@ const GerenciaRoScreen = ({ navigation, route = { params: {} } }) => {
           </View>
           {expandedOS === item.os_codigo && (
             <View style={styles.dropdown}>
-              <Text style={styles.dropdownTitle}>Assinaturas:</Text>
+              <Text style={styles.dropdownTitle}>Assinaturas realizadas:</Text>
               {assinaturas[item.os_codigo]?.length > 0 ? (
                 assinaturas[item.os_codigo].map((assinatura) => (
                   <View key={assinatura.id} style={styles.assinaturaItem}>
@@ -144,13 +153,6 @@ const GerenciaRoScreen = ({ navigation, route = { params: {} } }) => {
                     <Text style={styles.assinaturaText}>{`Observação: ${assinatura.observacao || "N/A"}`}</Text>
                     <Text style={styles.assinaturaText}>{`Data: ${assinatura.data || "N/A"}`}</Text>
                     <Text style={styles.assinaturaText}>{`Perfil: ${assinatura.nivel_acesso_nome || "N/A"}`}</Text>
-                    <TouchableOpacity
-                      onPress={() =>
-                        navigation.navigate("ConsultaAssinatura", { assinaturaId: assinatura.id })
-                      }
-                    >
-                      <Icon name="search" size={25} color="#4CAF50" />
-                    </TouchableOpacity>
                   </View>
                 ))
               ) : (
@@ -177,7 +179,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
   },
   loadingText: {
-    marginTop: 10,
     fontSize: 16,
     color: "#555",
   },

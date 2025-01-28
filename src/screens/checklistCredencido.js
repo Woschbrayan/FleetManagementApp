@@ -8,19 +8,19 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { Card, Icon } from "react-native-elements";
+import { Card, Icon, Button } from "react-native-elements";
 import moment from "moment";
 
-const CheckListOS = ({ navigation, route }) => {
+const ChecklistCredenciado = ({ navigation, route }) => {
   const [ordens, setOrdens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOS, setExpandedOS] = useState(null); // Controla a OS expandida
   const { cadCodigo } = route.params || {};
 
-  const API_BASE_URL = `https://syntron.com.br/sistemas/apis/ordensSevicoCheck.php`;
+  const API_BASE_URL = `https://syntron.com.br/sistemas/apis/ordensSevicoCheckCred.php?cadCodigo=${cadCodigo}`;
 
   useEffect(() => {
-    fetch(API_BASE_URL) 
+    fetch(API_BASE_URL)
       .then((response) => {
         if (!response.ok) {
           throw new Error("Erro ao buscar dados: " + response.statusText);
@@ -45,6 +45,10 @@ const CheckListOS = ({ navigation, route }) => {
 
   const formatDate = (date) => {
     return moment(date).format("DD/MM/YYYY HH:mm");
+  };
+
+  const handleRealizarChecklist = (osId, type) => {
+    navigation.navigate("RealizarChecklist", { osId, type, cadCodigo });
   };
 
   const renderChecklistDetails = (checklist) => {
@@ -88,26 +92,68 @@ const CheckListOS = ({ navigation, route }) => {
               </>
             )}
             <Text style={styles.checklistText}>
-            Vidros: {formatField(checklist.e1)}
+              Estado E1: {formatField(checklist.e1)}
             </Text>
             <Text style={styles.checklistText}>
-            Pintura: {formatField(checklist.e2)}
+              Estado E2: {formatField(checklist.e2)}
             </Text>
             <Text style={styles.checklistText}>
-            Limpeza Interna: {formatField(checklist.e3)}
+              Estado E3: {formatField(checklist.e3)}
             </Text>
             <Text style={styles.checklistText}>
-             Manuais: {formatField(checklist.e4)}
+              Estado E4: {formatField(checklist.e4)}
             </Text>
             <Text style={styles.checklistText}>
-             Palhetas: {formatField(checklist.e5)}
+              Estado E5: {formatField(checklist.e5)}
             </Text>
-           
+            <Text style={styles.checklistText}>
+              Estado S1: {formatField(checklist.s1)}
+            </Text>
+            <Text style={styles.checklistText}>
+              Estado S2: {formatField(checklist.s2)}
+            </Text>
+            <Text style={styles.checklistText}>
+              Estado S3: {formatField(checklist.s3)}
+            </Text>
+            <Text style={styles.checklistText}>
+              Estado S4: {formatField(checklist.s4)}
+            </Text>
+            <Text style={styles.checklistText}>
+              Estado S5: {formatField(checklist.s5)}
+            </Text>
           </View>
         </Card>
       </View>
     );
   };
+
+  const renderActionButton = (checklists, osId) => {
+    const hasEntrada = checklists.some((chk) => chk.chc_entrada === "S");
+    const hasSaida = checklists.some((chk) => chk.chc_saida === "S");
+  
+    if (!hasEntrada) {
+      return (
+        <Button
+          title="Realizar Checklist de Entrada"
+          onPress={() => handleRealizarChecklist(osId, "entrada")}
+          buttonStyle={styles.button}
+        />
+      );
+    }
+  
+    if (hasEntrada && !hasSaida) {
+      return (
+        <Button
+          title="Realizar Checklist de Saída"
+          onPress={() => handleRealizarChecklist(osId, "saida")}
+          buttonStyle={styles.button}
+        />
+      );
+    }
+  
+    return null;
+  };
+  
 
   if (loading) {
     return (
@@ -140,6 +186,8 @@ const CheckListOS = ({ navigation, route }) => {
             <Text>{`Data: ${item.os_data_lancamento}`}</Text>
             <Text>{`Observação: ${item.os_obs}`}</Text>
           </View>
+
+          {renderActionButton(item.checklists, item.os_codigo)}
 
           <TouchableOpacity
             style={styles.dropdownIcon}
@@ -191,6 +239,10 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
   },
+  button: {
+    backgroundColor: "#4CAF50",
+    marginVertical: 10,
+  },
   dropdownIcon: {
     alignItems: "flex-end",
     marginTop: 10,
@@ -212,4 +264,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CheckListOS;
+export default ChecklistCredenciado;

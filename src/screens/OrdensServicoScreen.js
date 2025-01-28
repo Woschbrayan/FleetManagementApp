@@ -16,17 +16,73 @@ const OrdensServicoScreen = ({ navigation, route }) => {
         { id: '4', titulo: 'Orçamentos', destino: 'OrcamentoOS' },
         { id: '5', titulo: 'Avaliação', destino: 'AvaliacaoOS' },
         { id: '6', titulo: 'Check List', destino: 'CheckListOS' },
+        { id: '7', titulo: 'Digita Orçamento', destino: 'OrcCred' },
+        { id: '8', titulo: 'Digita Check List', destino: 'checklistCredencido' },
     ];
+
+    // Função para determinar os cartões permitidos com base no nível de acesso
+    const filtrarOrdensServico = () => {
+        switch (nivelAcesso) {
+            case 251: // Orçamentista - CREDENCIADOS
+                return ordensServico.filter(item =>
+                    item.destino === 'OrcCred' || item.destino === 'checklistCredencido'
+                );
+            case 250: // Orçamentista
+                return ordensServico.filter(item =>
+                    item.destino === 'OrcCred' || item.destino === 'checklistCredencido'
+                );
+            case 999: // Administrador do Sistema
+            return ordensServico.filter(item =>
+                item.destino === 'AberturaOSScreen' 
+                || item.destino === 'SolicitacaoOSScreen' 
+                || item.destino === 'DistribuicaoOS'
+                || item.destino === 'OrcamentoOS' 
+                || item.destino === 'AvaliacaoOS'
+                || item.destino === 'CheckListOS'
+            );
+            case 222: // Operador do Sistema Suprimentos
+                return ordensServico.filter(item =>
+                    item.destino === 'OrcamentoOS' || item.destino === 'CheckListOS'
+                );
+            case 223:
+            case 224:
+            case 225:
+            case 227:
+            case 228:
+            case 229:
+            case 800:
+            case 995: // Gerente, Diretor e Gestor de Frota
+                return ordensServico.filter(item =>
+                    item.destino === 'AvaliacaoOS' || item.destino === 'CheckListOS'
+                );
+            case 960: // Gestão da Frota Lança O.S Nível 1
+                return ordensServico.filter(item =>
+                    item.destino === 'AberturaOSScreen' ||
+                    item.destino === 'SolicitacaoOSScreen' ||
+                    item.destino === 'DistribuicaoOS' ||
+                    item.destino === 'OrcamentoOS'
+                );
+            case 997: // Gestão de Frota Avaliador Nível 1
+            case 998: // Gestão da Frota Nível 1
+                return ordensServico.filter(item =>
+                    item.destino === 'AvaliacaoOS' || item.destino === 'CheckListOS'
+                );
+            default:
+                return []; // Sem acesso a nenhum cartão
+        }
+    };
+
+    const ordensFiltradas = filtrarOrdensServico();
 
     const renderItem = ({ item }) => (
         <TouchableOpacity
             style={styles.card}
-            onPress={() => 
+            onPress={() =>
                 navigation.navigate(item.destino, {
                     cadCodigo,
                     cadNome,
                     nomeNivel,
-                    nivelAcesso
+                    nivelAcesso,
                 })
             }
         >
@@ -36,12 +92,16 @@ const OrdensServicoScreen = ({ navigation, route }) => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.header}>Ordens de Serviço</Text>         
-            <FlatList
-                data={ordensServico}
-                renderItem={renderItem}
-                keyExtractor={item => item.id}
-            />
+            <Text style={styles.header}>Ordens de Serviço</Text>
+            {ordensFiltradas.length === 0 ? (
+                <Text style={styles.infoText}>Você não tem acesso a nenhuma funcionalidade.</Text>
+            ) : (
+                <FlatList
+                    data={ordensFiltradas}
+                    renderItem={renderItem}
+                    keyExtractor={item => item.id}
+                />
+            )}
         </View>
     );
 };
@@ -78,7 +138,8 @@ const styles = StyleSheet.create({
     infoText: {
         fontSize: 16,
         color: '#333',
-        marginBottom: 10,
+        marginTop: 20,
+        textAlign: 'center',
     },
 });
 

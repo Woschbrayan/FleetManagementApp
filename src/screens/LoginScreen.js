@@ -42,6 +42,8 @@ const LoginScreen = ({ navigation }) => {
 
   const handleLogin = async () => {
     try {
+      console.log(login);
+      console.log(senha);
       const response = await fetch('https://syntron.com.br/sistemas/apis/cad_usuario.php', {
       // const response = await fetch('http://192.168.100.63/apis/cad_usuario.php', {
         method: 'POST',
@@ -93,6 +95,8 @@ const LoginScreen = ({ navigation }) => {
 
   const handleAccessLevelSelect = async (level) => {
     try {
+      console.log(login);
+      console.log(senha);
       const response = await fetch('https://syntron.com.br/sistemas/apis/cad_usuario.php', {
       // const response = await fetch('http://192.168.100.63/apis/cad_usuario.php', {
         method: 'POST',
@@ -120,31 +124,38 @@ const LoginScreen = ({ navigation }) => {
 
   const handleRecoverPassword = async () => {
     if (!recoverLogin) {
-      Alert.alert('Erro', 'Por favor, insira o login.');
-      return;
+        Alert.alert('Erro', 'Por favor, insira o login.');
+        return;
     }
 
     try {
-      const response = await fetch('http://192.168.100.63/apis/recover_password.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ usu_login: recoverLogin }),
-      });
+        // Constrói o URL dinamicamente
+        const url = `https://syntron.com.br/sistemas/apis/recover_password.php?login=${encodeURIComponent(recoverLogin)}`;
+        console.log('URL:', url);
+        // Faz a requisição para a API
+        const response = await fetch(url, {
+            method: 'GET',
+        });
 
-      const result = await response.json();
+        if (!response.ok) {
+            throw new Error(`Erro de conexão: ${response.status}`);
+        }
 
-      if (result.status === 'success') {
-        Alert.alert('Sucesso', 'A senha foi enviada para o seu e-mail.');
-        setIsRecoverModalVisible(false);
-      } else {
-        Alert.alert('Erro', result.message);
-      }
+        const result = await response.json();
+
+        // Verifica o status do resultado
+        if (result.status === 'success') {
+            Alert.alert('Sucesso', 'A senha foi enviada para o seu e-mail.');
+            setIsRecoverModalVisible(false);
+        } else {
+            Alert.alert('Erro', result.message || 'Erro ao recuperar senha.');
+        }
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível enviar a senha.');
+        Alert.alert('Erro', error.message || 'Erro inesperado. Tente novamente.');
     }
-  };
+};
+
+
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -185,6 +196,7 @@ const LoginScreen = ({ navigation }) => {
           </TouchableWithoutFeedback>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Selecione o Nível de Acesso</Text>
+            <View style={{ maxHeight: 300 }}> {/* Define um limite para a altura da lista */}
             <FlatList
               data={accessLevels}
               keyExtractor={(item, index) => index.toString()}
@@ -194,13 +206,15 @@ const LoginScreen = ({ navigation }) => {
                   onPress={() => handleAccessLevelSelect(item)}
                 >
                   <Text style={styles.accessLevelText}>
-                    {item.niv_nome}
+                    {item.niv_nome || 'Nível não especificado'} {/* Evita texto indefinido */}
                   </Text>
                 </TouchableOpacity>
               )}
             />
+            </View>
           </View>
         </Modal>
+
 
         {/* Modal para recuperação de senha */}
         <Modal
@@ -292,6 +306,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
+    maxHeight: '80%', // Limite para o Modal
   },
   modalTitle: {
     fontSize: 18,

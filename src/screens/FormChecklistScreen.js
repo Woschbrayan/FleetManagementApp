@@ -17,11 +17,12 @@ const FormChecklistScreen = () => {
   const route = useRoute();
 
   const { groupId } = route.params;
-
+console.log("ID do item recebido (idItem):", groupId);
   const fetchVeiculos = async () => {
     try {
-      const response = await fetch('https://syntron.com.br/sistemas/apis/veiculos.php');
+      const response = await fetch(`https://syntron.com.br/sistemas/apis/veiculos.php?grupoid=${groupId}`);
       // const response = await fetch('http://192.168.100.63/apis/veiculos.php');
+      console.log(response);
       const result = await response.json();
       if (result.status === 'success') {
         setVeiculos(result.data);

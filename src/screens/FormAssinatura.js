@@ -3,7 +3,7 @@ import { View, Text, TextInput, Button, ScrollView, Alert, StyleSheet, Image } f
 import * as ImagePicker from "expo-image-picker";
 
 const FormAssinatura = ({ route }) => {
-  const { cadCodigo = "5", nivelAcesso = 999 } = route?.params || {}; // Valores padrão para testes
+  const { cadCodigo, nivelAcesso, osCodigo } = route?.params || {}; // Valores padrão para testes
 
   const [formData, setFormData] = useState({
     name: "",
@@ -44,39 +44,43 @@ const FormAssinatura = ({ route }) => {
   };
 
   const handleSubmit = async () => {
-    // Campos obrigatórios simples
+    // Verificação de campos obrigatórios simples
     if (!formData.name || !formData.cpf || !formData.description) {
       Alert.alert("Erro", "Por favor, preencha todos os campos.");
       return;
     }
-
-    // Cria o payload JSON
+  
+    // Cria o payload JSON com todos os valores necessários
     const payload = {
-      registro: cadCodigo, // Código do registro
-      usuariocodigo: cadCodigo,
-      name: formData.name,
-      cpf: formData.cpf,
-      description: formData.description,
-      nivelacesso: nivelAcesso,
-      photo: formData.photo ? formData.photo.uri : null,
+      registro: osCodigo, // Código do registro
+      usuariocodigo: cadCodigo, // Código do usuário
+      name: formData.name, // Nome do usuário
+      cpf: formData.cpf, // CPF do usuário
+      description: formData.description, // Descrição inserida
+      nivelacesso: nivelAcesso, // Nível de acesso do usuário
+      photo: formData.photo ? formData.photo.uri : null, // URI da foto, se disponível
     };
-
+  
     console.log("Dados Enviados:", payload);
-
+  
     try {
-      const response = await fetch("https://syntron.com.br/sistemas/apis/regsitro_assinatura.php", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
+      const response = await fetch(
+        "https://syntron.com.br/sistemas/apis/regsitro_assinatura.php?acao=Assinado",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+  
       const result = await response.json();
       console.log("Resposta da API:", result);
-
+  
       if (response.ok) {
         Alert.alert("Sucesso", "Registro de assinatura inserido com sucesso!");
+        // Reseta o formulário
         setFormData({
           name: "",
           cpf: "",
