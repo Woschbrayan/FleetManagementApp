@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, TextInput, Button, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
-
+import API_BASE_URL from "./config";
 const ItemForm = ({ route, navigation }) => {
   const { osId, orcamentoId, item, editMode } = route.params || {};
 
@@ -44,10 +44,10 @@ const ItemForm = ({ route, navigation }) => {
           : parseFloat(formData.unitValue), // Para serviço
     };
   
-    console.log("Payload enviado para a API:", payload);
+    // console.log("Payload enviado para a API:", payload);
   
     // URL da API
-    const API_URL = "https://syntron.com.br/sistemas/apis/saveItem.php";
+    const API_URL = `${API_BASE_URL}/saveItem.php`;
   
     // Faz a requisição para a API
     fetch(API_URL, {

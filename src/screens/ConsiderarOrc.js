@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet, Alert } from 'react-native';
 import RadioForm from 'react-native-simple-radio-button';
 import { useRoute } from '@react-navigation/native';
-
+import API_BASE_URL from './config';
 const ConsiderarOrc = () => {
     const route = useRoute(); // Hook para acessar os parâmetros da navegação
 
@@ -18,7 +18,7 @@ const ConsiderarOrc = () => {
 
     const handleSubmit = () => {
         // Enviando os parâmetros junto com o status para a API
-        fetch('https://syntron.com.br/sistemas/apis/avaliacaOrc.php', {
+        fetch(`${API_BASE_URL}/avaliacaOrc.php`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

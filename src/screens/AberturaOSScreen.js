@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Button, Alert, TextInput, StyleSheet, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { Picker as Select } from '@react-native-picker/picker';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import API_BASE_URL from './config';
 const OrdemServicoForm = () => {
     const route = useRoute();
     const navigation = useNavigation();
@@ -9,7 +10,12 @@ const OrdemServicoForm = () => {
   const [tipoVeiculo, setTipoVeiculo] = useState('');
   const [veiculoSelecionado, setVeiculoSelecionado] = useState('');
   const [kmAtual, setKmAtual] = useState('');
+
   const [cidadeAbertura, setCidadeAbertura] = useState('');
+  const [cidades, setCidades] = useState([]);
+  const [filteredCidades, setFilteredCidades] = useState([]);
+  const [cidadeSearch, setCidadeSearch] = useState('');
+
   const [inoperante, setInoperante] = useState('');
   const [complementar, setComplementar] = useState('');
   const [tipoOS, setTipoOS] = useState('');
@@ -17,20 +23,16 @@ const OrdemServicoForm = () => {
   const [padraoSelecionado, setPadraoSelecionado] = useState('');
   const [osPadrao, setOsPadrao] = useState([]);
   const [veiculos, setVeiculos] = useState([]);
-  const [cidades, setCidades] = useState([]);
+ 
+
   const [mostrarCampoMotorista, setMostrarCampoMotorista] = useState(false);
 const [motoristaSelecionado, setMotoristaSelecionado] = useState("");
 const [motoristas, setMotoristas] = useState([]);
 
-// const [motoristas, setMotoristas] = useState([
-//     { id: 1, nome: "Motorista 1" },
-//     { id: 2, nome: "Motorista 2" },
-//     { id: 3, nome: "Motorista 3" },
-// ]); // Exemplo de lista
 
 const fetchMotoristas = async () => {
   try {
-    const response = await fetch('https://syntron.com.br/sistemas/apis/motoristas.php');
+    const response = await fetch(`${API_BASE_URL}/motoristas.php`);
     const data = await response.json();
 
     if (data.status === 'success') {
@@ -61,7 +63,7 @@ useEffect(() => {
       if (!tipoVeiculo) {
         return; // Não faz a requisição se tipoVeiculo não for definido
       }
-      const response = await fetch(`https://syntron.com.br/sistemas/apis/veiculos.php?tipoVeiculo=${tipoVeiculo}`);
+      const response = await fetch(`${API_BASE_URL}/veiculos.php?tipoVeiculo=${tipoVeiculo}`);
       // const response = await fetch(`http://192.168.100.63/apis/veiculos.php?tipoVeiculo=${tipoVeiculo}`);
       const data = await response.json();
       if (data.status === 'success') {
@@ -76,18 +78,30 @@ useEffect(() => {
 
   const fetchCidades = async () => {
     try {
-      const response = await fetch(`https://syntron.com.br/sistemas/apis/tab_cidades.php?action=getSelectOptions`);
-      // const response = await fetch(`http://192.168.100.63/apis/tab_cidades.php?action=getSelectOptions`);
-      const data = await response.json();
-      if (data.status === 'success') {
-        setCidades(data.data); // Armazena as cidades no estado
-      } else {
-        Alert.alert('Erro', 'Nenhuma cidade encontrada');
-      }
+        const response = await fetch(`${API_BASE_URL}/tab_cidades.php?action=getSelectOptions`);
+        const data = await response.json();
+        if (data.status === 'success') {
+            setCidades(data.data);
+            setFilteredCidades(data.data);
+        } else {
+            Alert.alert('Erro', 'Nenhuma cidade encontrada');
+        }
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar as cidades');
+        Alert.alert('Erro', 'Não foi possível carregar as cidades');
     }
-  };
+};
+
+const handleCidadeSearch = (text) => {
+    setCidadeSearch(text);
+    if (text === '') {
+        setFilteredCidades(cidades);
+    } else {
+        const filtered = cidades.filter(cidade => 
+            cidade.cidade.toLowerCase().includes(text.toLowerCase())
+        );
+        setFilteredCidades(filtered);
+    }
+};
 
   useEffect(() => {
     fetchCidades();
@@ -100,7 +114,7 @@ useEffect(() => {
   
     try {
       console.log("Fazendo requisição para a API...");
-      const response = await fetch('https://syntron.com.br/sistemas/apis/mov_os_especial.php');
+      const response = await fetch(`${API_BASE_URL}/mov_os_especial.php`);
       console.log("Resposta da API recebida:", response);
   
       if (!response.ok) {
@@ -193,7 +207,7 @@ useEffect(() => {
     console.log(payload);
   
     try {
-      const response = await fetch('https://syntron.com.br/sistemas/apis/insert_mov_os.php', {
+      const response = await fetch(`${API_BASE_URL}/insert_mov_os.php`, {
       // const response = await fetch('http://192.168.100.63/apis/insert_mov_os.php', {
         method: 'POST',
         headers: {
@@ -261,11 +275,7 @@ useEffect(() => {
                             <Select.Item label="Motos" value="5" />
                             <Select.Item label="Embarcação" value="6" />
                         </Select>
-                    </>
-                )}
 
-                {step === 2 && (
-                    <>
                         <Text style={styles.label}>Selecione um veículo:</Text>
                         {veiculos.length > 0 ? (
                             <Select
@@ -287,7 +297,31 @@ useEffect(() => {
                         )}
                     </>
                 )}
-                {step === 3 && (
+
+                {/* {step === 2 && (
+                    <>
+                        <Text style={styles.label}>Selecione um veículo:</Text>
+                        {veiculos.length > 0 ? (
+                            <Select
+                                selectedValue={veiculoSelecionado}
+                                onValueChange={(itemValue) => setVeiculoSelecionado(String(itemValue))}
+                                style={styles.picker}
+                            >
+                                <Select.Item label="Selecione um veículo" value="" />
+                                {veiculos.map((veiculo) => (
+                                    <Select.Item
+                                        key={veiculo.vei_codigo}
+                                        label={veiculo.veiculo_detalhes}
+                                        value={String(veiculo.vei_codigo)}
+                                    />
+                                ))}
+                            </Select>
+                        ) : (
+                            <Text>Carregando veículos...</Text>
+                        )}
+                    </>
+                )} */}
+                {step === 2 && (
                     <>
                         <Text style={styles.label}>KM Atual:</Text>
                         <TextInput
@@ -298,16 +332,20 @@ useEffect(() => {
                             style={styles.input}
                             onBlur={Keyboard.dismiss}
                         />
-
-                        <Text style={styles.label}>Cidade de Abertura:</Text>
-                        {cidades.length > 0 ? (
+                       <Text style={styles.label}>Cidade de Abertura:</Text>
+                            <TextInput
+                                placeholder="Digite para buscar cidade"
+                                value={cidadeSearch}
+                                onChangeText={handleCidadeSearch}
+                                style={styles.input}
+                            />
                             <Select
                                 selectedValue={cidadeAbertura}
                                 onValueChange={(itemValue) => setCidadeAbertura(String(itemValue))}
                                 style={styles.picker}
                             >
                                 <Select.Item label="Selecione uma cidade" value="" />
-                                {cidades.map((cidade) => (
+                                {filteredCidades.map((cidade) => (
                                     <Select.Item
                                         key={cidade.cid_codigo}
                                         label={cidade.cidade}
@@ -315,13 +353,41 @@ useEffect(() => {
                                     />
                                 ))}
                             </Select>
-                        ) : (
-                            <Text>Carregando cidades...</Text>
-                        )}
-                    </>
+                            <Text style={styles.label}>Inoperante?</Text>
+                        <Select
+                            selectedValue={inoperante}
+                            onValueChange={(itemValue) => setInoperante(itemValue)}
+                            style={styles.picker}
+                        >
+                            <Select.Item label="Selecione" value="" />
+                            <Select.Item label="Sim" value="sim" />
+                            <Select.Item label="Não" value="não" />
+                        </Select>
+                        <Text style={styles.label}>Complementar?</Text>
+                         <Select
+                             selectedValue={complementar}
+                             onValueChange={(itemValue) => setComplementar(itemValue)}
+                             style={styles.picker}
+                         >
+                             <Select.Item label="Selecione" value="" />
+                             <Select.Item label="Sim" value="sim" />
+                             <Select.Item label="Não" value="não" />
+                         </Select>
+                         <Text style={styles.label}>Tipo de OS:</Text>
+                        <Select
+                            selectedValue={tipoOS}
+                            onValueChange={(itemValue) => setTipoOS(itemValue)}
+                            style={styles.picker}
+                        >
+                            <Select.Item label="Corretiva" value="1" />
+                            <Select.Item label="Preventiva" value="2" />
+                            <Select.Item label="Insumos" value="3" />
+                        </Select>
+                            
+                      </>
                 )}
 
-                {step === 4 && (
+                {/* {step === 4 && (
                     <>
                         <Text style={styles.label}>Inoperante?</Text>
                         <Select
@@ -334,20 +400,20 @@ useEffect(() => {
                             <Select.Item label="Não" value="não" />
                         </Select>
 
-                        <Text style={styles.label}>Complementar?</Text>
-                        <Select
-                            selectedValue={complementar}
-                            onValueChange={(itemValue) => setComplementar(itemValue)}
-                            style={styles.picker}
-                        >
-                            <Select.Item label="Selecione" value="" />
-                            <Select.Item label="Sim" value="sim" />
-                            <Select.Item label="Não" value="não" />
-                        </Select>
+                         <Text style={styles.label}>Complementar?</Text>
+                         <Select
+                             selectedValue={complementar}
+                             onValueChange={(itemValue) => setComplementar(itemValue)}
+                             style={styles.picker}
+                         >
+                             <Select.Item label="Selecione" value="" />
+                             <Select.Item label="Sim" value="sim" />
+                             <Select.Item label="Não" value="não" />
+                         </Select>
                     </>
-                )}
+                )} */}
 
-                {step === 5 && (
+                {/* {step === 4 && (
                     <>
                         <Text style={styles.label}>Tipo de OS:</Text>
                         <Select
@@ -360,9 +426,9 @@ useEffect(() => {
                             <Select.Item label="Insumos" value="3" />
                         </Select>
                     </>
-                )}
+                )} */}
 
-                {step === 6 && (
+                {step === 3 && (
                     <>
                         <Text style={styles.label}>Padrão da Ordem de Serviço:</Text>
                         <Select
@@ -415,9 +481,9 @@ useEffect(() => {
 
                 <TouchableOpacity
                     style={styles.button}
-                    onPress={step === 6 ? handleSubmit : handleAvancar}
+                    onPress={step ===3 ? handleSubmit : handleAvancar}
                 >
-                    <Text style={styles.buttonText}>{step === 6 ? 'Finalizar' : 'Avançar'}</Text>
+                    <Text style={styles.buttonText}>{step === 3 ? 'Finalizar' : 'Avançar'}</Text>
                 </TouchableOpacity>
             </View>
         </ScrollView>
@@ -429,42 +495,62 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F4F6F9', // Cinza claro para fundo mais suave
   },
   label: {
     fontSize: 16,
-    marginBottom: 10,
+    marginBottom: 5,
+    fontWeight: '600',
     color: '#333',
   },
   picker: {
-    height: 250,
+    height: 50,
     backgroundColor: '#fff',
     borderColor: '#ccc',
     borderWidth: 1,
-    borderRadius: 5,
+    borderRadius: 8,
     marginBottom: 15,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
   },
   input: {
-    height: 40,
+    height: 45,
     backgroundColor: '#fff',
     borderColor: '#ccc',
     borderWidth: 1,
-    borderRadius: 5,
-    padding: 10,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    fontSize: 16,
     marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2, // Sombra para Android
   },
   button: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#007BFF', // Azul mais chamativo
     padding: 15,
-    borderRadius: 5,
+    borderRadius: 8,
     alignItems: 'center',
-    marginTop: 80,
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 3, // Efeito 3D no Android
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
   },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingBottom: 40,
+  },
 });
+
 
 export default OrdemServicoForm;

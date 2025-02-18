@@ -13,32 +13,39 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons"; // Ícones Ionicons
 import API_BASE_URL from "./config";
 
-const API_ORDENS = `${API_BASE_URL}/ordensSevico.php?status=Ro`;
-const API_ALTERAR = `${API_BASE_URL}/alterar_os.php`;
-const API_BUSCAR_ASSINATURAS = `${API_BASE_URL}/buscar_assinaturas.php`;
+// Usando a nova rota consultada, que recebe ?status=RO
+const API_ORDENS = `${API_BASE_URL}/consultar_ordens.php?status=RO`;
+// Se usar a exata, sem status=RO, o status deve ser enviado via param.
 
-const GerenciaRoScreen = () => {
+const RelatorioRO = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
-  // Parâmetros recebidos (se houver)
+  // Se precisar receber cadCodigo e nivelAcesso de outra tela (não é mais usado aqui, mas deixamos disponível).
   const { cadCodigo = null, nivelAcesso = null } = route.params || {};
 
   const [ordens, setOrdens] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedOS, setExpandedOS] = useState(null);
-  const [assinaturas, setAssinaturas] = useState({});
+  const [expandedOS, setExpandedOS] = useState(null); // Qual OS está expandida
+  const [assinaturas, setAssinaturas] = useState({}); // Guarda as assinaturas de cada OS
 
   useEffect(() => {
     buscarOrdens();
   }, []);
 
+  // Busca as ordens com status = RO
   const buscarOrdens = async () => {
     try {
       setLoading(true);
       const response = await fetch(API_ORDENS);
       const data = await response.json();
-      setOrdens(data);
+      if (data.error) {
+        Alert.alert("Erro", data.message || "Não foi possível carregar as OS.");
+        setOrdens([]);
+      } else {
+        // data.data deve ter o array de OS
+        setOrdens(data.data || []);
+      }
     } catch (error) {
       console.error("Erro ao buscar ordens:", error);
       Alert.alert("Erro", "Não foi possível carregar as Ordens de Serviço.");
@@ -47,6 +54,7 @@ const GerenciaRoScreen = () => {
     }
   };
 
+  // Formata data ISO no formato DD/MM/AAAA HH:MM
   const formatarData = (dataIso) => {
     if (!dataIso) return "Data não disponível";
     const dataObj = new Date(dataIso);
@@ -58,78 +66,34 @@ const GerenciaRoScreen = () => {
     return `${dia}/${mes}/${ano} ${horas}:${minutos}`;
   };
 
-  const enviarParaOrcamentacao = (osCodigo) => {
-    Alert.alert(
-      "Confirmação",
-      "Deseja enviar o registro de ocorrência para orçamentação?",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Confirmar",
-          onPress: async () => {
-            try {
-              const response = await fetch(API_ALTERAR, {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: new URLSearchParams({ os_codigo: osCodigo }).toString(),
-              });
-              const data = await response.json();
-              if (data.error) {
-                Alert.alert("Erro", data.message);
-              } else {
-                Alert.alert(
-                  "Sucesso",
-                  "Ordem de Serviço enviada para orçamentação com sucesso!"
-                );
-                // Atualiza o status localmente
-                setOrdens((prev) =>
-                  prev.map((ordem) =>
-                    ordem.os_codigo === osCodigo
-                      ? {
-                          ...ordem,
-                          os_status_nome: "Enviado para Orçamentação",
-                          os_status: "ORC", // se quiser, pode alterar aqui também
-                        }
-                      : ordem
-                  )
-                );
-              }
-            } catch (error) {
-              console.error("Erro ao enviar para orçamentação:", error);
-              Alert.alert("Erro", "Erro ao enviar para orçamentação.");
-            }
-          },
-        },
-      ]
-    );
-  };
+  // Busca assinaturas para a OS
+  const fetchAssinaturas = async (osCodigo) => {
+    // Substitua por sua rota real, ex: `${API_BASE_URL}/buscar_assinaturas.php`
+    const API_BUSCAR_ASSINATURAS = `${API_BASE_URL}/buscar_assinaturas.php`;
 
-  const fetchAssinaturas = async (registro) => {
     try {
-      const response = await fetch(`${API_BUSCAR_ASSINATURAS}?registro=${registro}`);
+      const response = await fetch(`${API_BUSCAR_ASSINATURAS}?registro=${osCodigo}`);
       const data = await response.json();
       setAssinaturas((prev) => ({
         ...prev,
-        [registro]: data.data || [],
+        [osCodigo]: data.data || [],
       }));
     } catch (error) {
-      console.error(`Erro ao buscar assinaturas para registro ${registro}:`, error);
+      console.error(`Erro ao buscar assinaturas para OS ${osCodigo}:`, error);
       setAssinaturas((prev) => ({
         ...prev,
-        [registro]: [],
+        [osCodigo]: [],
       }));
     }
   };
 
+  // Toggle para expandir ou recolher as assinaturas de uma OS
   const toggleDropdown = (osCodigo) => {
     if (expandedOS === osCodigo) {
-      // Se já está aberto, fecha.
+      // Se já está aberto, fecha
       setExpandedOS(null);
     } else {
-      // Abre e busca assinaturas se ainda não foram buscadas
+      // Abre e, se ainda não tem assinaturas carregadas, busca
       setExpandedOS(osCodigo);
       if (!assinaturas[osCodigo]) {
         fetchAssinaturas(osCodigo);
@@ -146,61 +110,40 @@ const GerenciaRoScreen = () => {
     );
   }
 
+  // Renderiza cada OS
   const renderItem = ({ item }) => {
     const isExpanded = expandedOS === item.os_codigo;
     const listaAssinaturas = assinaturas[item.os_codigo] || [];
 
     return (
       <View style={styles.card}>
-        {/* Cabeçalho da Card */}
+        {/* Cabeçalho */}
         <View style={styles.cardHeader}>
           <Ionicons name="document-text-outline" size={22} color="#007BFF" />
-          <Text style={styles.cardTitle}>{`Rgistro de Ocorrencia: ${item.os_codigo || "Não especificado"}`}</Text>
+          <Text style={styles.cardTitle}>
+            Registro de Ocorrência: {item.os_codigo || "Não especificado"}
+          </Text>
         </View>
 
         {/* Conteúdo principal */}
         <View style={styles.cardContent}>
           <Text style={styles.cardText}>
-            <Text style={styles.bold}>Veículo:</Text> {item.veiculo_detalhes || "Não especificado"}
+            <Text style={styles.bold}>🚗 Veículo:</Text>{" "}
+            {item.veiculo_detalhes || "Não especificado"}
           </Text>
           <Text style={styles.cardText}>
-            <Text style={styles.bold}>Data:</Text> {formatarData(item.os_data_lancamento)}
+            <Text style={styles.bold}>📅 Data:</Text>{" "}
+            {formatarData(item.os_data_lancamento)}
           </Text>
           <Text style={styles.cardText}>
-            <Text style={styles.bold}>Observação:</Text> {item.os_obs || "Sem observações"}
+            <Text style={styles.bold}>📝 Observação:</Text>{" "}
+            {item.os_obs || "Sem observações"}
           </Text>
           <Text style={styles.cardText}>
-            <Text style={styles.bold}>Status:</Text> {item.os_status_nome || "Desconhecido"}
+            <Text style={styles.bold}>🔖 Status:</Text>{" "}
+            {item.os_status || "Desconhecido"}
           </Text>
         </View>
-
-        {/* Botões (visíveis apenas se status == "RO") */}
-        {item.os_status === "RO" && (
-          <View style={styles.buttonRow}>
-            {nivelAcesso !== 252 && (
-              <TouchableOpacity
-                style={styles.orcamentacaoButton}
-                onPress={() => enviarParaOrcamentacao(item.os_codigo)}
-              >
-                <Ionicons name="arrow-forward-circle-outline" size={18} color="#FFF" />
-                <Text style={styles.buttonText}>Enviar Orçamentação</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={styles.assinarButton}
-              onPress={() =>
-                navigation.navigate("FormAssinatura", {
-                  osCodigo: item.os_codigo,
-                  cadCodigo: cadCodigo,
-                  nivelAcesso: nivelAcesso,
-                })
-              }
-            >
-              <Ionicons name="pencil-outline" size={18} color="#FFF" />
-              <Text style={styles.buttonText}>Assinar</Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
         {/* Botão para Expandir/Recolher Assinaturas */}
         <TouchableOpacity
@@ -217,7 +160,7 @@ const GerenciaRoScreen = () => {
           </Text>
         </TouchableOpacity>
 
-        {/* Área de assinaturas - aparece somente se expandido */}
+        {/* Se expandido, mostra assinaturas */}
         {isExpanded && (
           <View style={styles.assinaturasContainer}>
             <Text style={styles.assinaturasTitle}>Assinaturas realizadas:</Text>
@@ -225,26 +168,37 @@ const GerenciaRoScreen = () => {
               listaAssinaturas.map((assinatura) => (
                 <View key={assinatura.id} style={styles.assinaturaItem}>
                   <Text style={styles.assinaturaText}>
-                    <Text style={styles.bold}>Nome:</Text> {assinatura.nome || "N/A"}
+                    <Text style={styles.bold}>Nome:</Text>{" "}
+                    {assinatura.nome || "N/A"}
                   </Text>
                   <Text style={styles.assinaturaText}>
-                    <Text style={styles.bold}>CPF:</Text> {assinatura.cpf || "N/A"}
+                    <Text style={styles.bold}>CPF:</Text>{" "}
+                    {assinatura.cpf || "N/A"}
                   </Text>
                   <Text style={styles.assinaturaText}>
-                    <Text style={styles.bold}>Observação:</Text> {assinatura.observacao || "N/A"}
+                    <Text style={styles.bold}>Observação:</Text>{" "}
+                    {assinatura.observacao || "N/A"}
                   </Text>
                   <Text style={styles.assinaturaText}>
-                    <Text style={styles.bold}>Data:</Text> {formatarData(assinatura.data)}
+                    <Text style={styles.bold}>Data:</Text>{" "}
+                    {formatarData(assinatura.data)}
                   </Text>
+
+                  {/* Se for nível de acesso 252 e houver foto, exibe */}
                   {assinatura.nivelacesso === 252 && assinatura.foto_url ? (
-                    <Image source={{ uri: assinatura.foto_url }} style={styles.assinaturaImagem} />
+                    <Image
+                      source={{ uri: assinatura.foto_url }}
+                      style={styles.assinaturaImagem}
+                    />
                   ) : (
                     <Text style={styles.semFoto}>Sem imagem</Text>
                   )}
                 </View>
               ))
             ) : (
-              <Text style={styles.semAssinaturas}>Nenhuma assinatura encontrada.</Text>
+              <Text style={styles.semAssinaturas}>
+                Nenhuma assinatura encontrada.
+              </Text>
             )}
           </View>
         )}
@@ -261,13 +215,15 @@ const GerenciaRoScreen = () => {
           renderItem={renderItem}
         />
       ) : (
-        <Text style={styles.loadingText}>Nenhuma Ordem de Serviço encontrada.</Text>
+        <Text style={styles.loadingText}>
+          Nenhuma Ordem de Serviço encontrada.
+        </Text>
       )}
     </View>
   );
 };
 
-export default GerenciaRoScreen;
+export default RelatorioRO;
 
 const styles = StyleSheet.create({
   container: {
@@ -285,14 +241,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: "#666",
+    textAlign: "center",
   },
+  // Card OS
   card: {
     backgroundColor: "#FFF",
     borderRadius: 10,
     padding: 20,
     marginVertical: 10,
 
-    // Sombra/elevation
+    // Sombra
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
@@ -321,37 +279,6 @@ const styles = StyleSheet.create({
   bold: {
     fontWeight: "bold",
   },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  orcamentacaoButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#007BFF",
-    padding: 10,
-    borderRadius: 6,
-    justifyContent: "center",
-    flex: 1,
-    marginRight: 5,
-  },
-  assinarButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#28A745",
-    padding: 10,
-    borderRadius: 6,
-    justifyContent: "center",
-    flex: 1,
-    marginLeft: 5,
-  },
-  buttonText: {
-    color: "#FFF",
-    fontWeight: "bold",
-    marginLeft: 5,
-    fontSize: 14,
-  },
   dropdownButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -361,6 +288,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 10,
   },
+  buttonText: {
+    color: "#FFF",
+    fontWeight: "bold",
+    marginLeft: 5,
+    fontSize: 14,
+  },
+  // Container de assinaturas
   assinaturasContainer: {
     marginTop: 10,
     backgroundColor: "#E9F7EF",
@@ -380,7 +314,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginBottom: 10,
 
-    // Sombra/elevation
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,

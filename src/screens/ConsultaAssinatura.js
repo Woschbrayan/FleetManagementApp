@@ -8,8 +8,8 @@ import {
   ScrollView,
   Image,
 } from "react-native";
-
-const API_ASSINATURA_DETALHES = "https://syntron.com.br/sistemas/apis/regsitro_assinatura_insert.php?action=consultar";
+import API_BASE_URL from "./config";
+const API_ASSINATURA_DETALHES = `${API_BASE_URL}/regsitro_assinatura_insert.php?action=consultar`;
 
 const ConsultaAssinatura = ({ route, navigation }) => {
   const { assinaturaId } = route.params;

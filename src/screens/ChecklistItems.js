@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Alert, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import API_BASE_URL from './config';
 
 const ChecklistItemsScreen = () => {
   const route = useRoute();
@@ -10,7 +11,6 @@ const ChecklistItemsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [solicitacao, setSolicitacao] = useState(null);
 
-  // Obtém o ID do item a partir dos dados do checklist
   const idItem = checklistData?.groupId;
 
   useEffect(() => {
@@ -20,19 +20,20 @@ const ChecklistItemsScreen = () => {
         setLoading(false);
         return;
       }
-  
+
       try {
-        console.log(`Requisitando itens com idItem: ${idItem}`);
-        const response = await fetch(`https://syntron.com.br/sistemas/apis/CheckItemsA.php?tipoCheck=${idItem}`);
+        const response = await fetch(`${API_BASE_URL}/CheckItemsA.php?tipoCheck=${idItem}`);
         const contentType = response.headers.get("Content-Type");
-        console.log("Content-Type da resposta:", contentType);
-  
+
         if (contentType && contentType.includes("application/json")) {
           const result = await response.json();
-          console.log("Itens retornados pela API:", result);
-  
+
           if (result.status === 'success') {
-            setItens(result.data);
+            const itensIniciais = result.data.map(item => ({
+              ...item,
+              status: true, // 🟢 Inicia como "Sim"
+            }));
+            setItens(itensIniciais);
           } else {
             Alert.alert('Erro', result.message || 'Erro desconhecido na API.');
           }
@@ -48,34 +49,23 @@ const ChecklistItemsScreen = () => {
         setLoading(false);
       }
     };
-  
+
     fetchItens();
   }, [idItem]);
-  
 
   const handleStatusChange = (id, status) => {
-    setItens((prevItens) =>
-      prevItens.map((item) =>
+    setItens(prevItens =>
+      prevItens.map(item =>
         item.id === id ? { ...item, status } : item
       )
     );
   };
 
   const handleSubmit = async () => {
-    const allItemsMarked = itens.every(item => item.status !== undefined);
-    if (!allItemsMarked) {
-      Alert.alert('Aviso', 'Por favor, marque todos os itens.');
-      return;
-    }
-
-    if (solicitacao === null) {
-      Alert.alert('Aviso', 'Por favor, informe se deseja inserir uma solicitação.');
-      return;
-    }
-
     const completedChecklist = {
-      
       checklistData: {
+        cadCodigo: checklistData.cadCodigo,
+        groupId: checklistData.groupId,
         veiculoSelecionado: checklistData.veiculoSelecionado,
         km: checklistData.km,
         dataTrocaOleo: checklistData.dataTrocaOleo,
@@ -86,14 +76,13 @@ const ChecklistItemsScreen = () => {
         id: item.id,
         status: item.status ? 1 : 2,
       })),
-      solicitacao: solicitacao,
+      solicitacao: solicitacao || 1, // Se não for selecionado, mantém como "Sim"
     };
-
 
     console.log('Dados enviados para a API:', JSON.stringify(completedChecklist));
 
     try {
-      const response = await fetch('https://syntron.com.br/sistemas/apis/submit_checklist.php', {
+      const response = await fetch(`${API_BASE_URL}/submit_checklist.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(completedChecklist),
@@ -106,7 +95,6 @@ const ChecklistItemsScreen = () => {
         const result = JSON.parse(text);
         if (result.status === 'success') {
           Alert.alert('Checklist Finalizado', 'Checklist realizado com sucesso!');
-          
         } else {
           Alert.alert('Erro', result.message || 'Erro ao processar os dados.');
         }
@@ -120,71 +108,42 @@ const ChecklistItemsScreen = () => {
     }
   };
 
-  const handleSolicitacaoAlert = () => {
-    Alert.alert(
-      'Deseja Inserir Solicitação?',
-      'Escolha uma opção para inserir uma solicitação.',
-      [
-        {
-          text: 'Sim',
-          onPress: async () => {
-            setSolicitacao(1);
-            await new Promise(resolve => setTimeout(resolve, 100));
-            handleSubmit();
-          },
-        },
-        {
-          text: 'Não',
-          onPress: async () => {
-            setSolicitacao(2);
-            await new Promise(resolve => setTimeout(resolve, 100));
-            handleSubmit();
-          },
-        },
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-      ]
-    );
-  };
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
-        <Text>Carregando itens...</Text>
+        <ActivityIndicator size="large" color="#007bff" />
+        <Text style={styles.loadingText}>Carregando itens...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Itens do Checklist</Text>
+      {/* <Text style={styles.header}>📋 Itens do Checklist</Text> */}
       <FlatList
         data={itens}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <View style={styles.item}>
-            <Text style={styles.itemText}>{item.nome}</Text>
+          <View style={styles.card}>
+            <Text style={styles.itemTitle}>{item.nome}</Text>
             <View style={styles.radioButtonsContainer}>
               <TouchableOpacity
-                style={[styles.radioButton, item.status === true && styles.selectedButton]}
+                style={[styles.radioButton, item.status === true && styles.selectedButtonSim]}
                 onPress={() => handleStatusChange(item.id, true)}
               >
-                <Text style={styles.radioText}>Sim</Text>
+                <Text style={styles.radioText}>✅ Sim</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.radioButton, item.status === false && styles.selectedButton]}
+                style={[styles.radioButton, item.status === false && styles.selectedButtonNao]}
                 onPress={() => handleStatusChange(item.id, false)}
               >
-                <Text style={styles.radioText}>Não</Text>
+                <Text style={styles.radioText}>❌ Não</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
       />
-      <TouchableOpacity style={styles.finalizarButton} onPress={handleSolicitacaoAlert}>
+      <TouchableOpacity style={styles.finalizarButton} onPress={handleSubmit}>
         <Text style={styles.finalizarButtonText}>Finalizar Checklist</Text>
       </TouchableOpacity>
     </View>
@@ -192,49 +151,44 @@ const ChecklistItemsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, padding: 20, backgroundColor: '#F8F9FA' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#333' },
-  item: {
-    flexDirection: 'column', // Empilha texto e botões
-    justifyContent: 'space-between',
-    marginBottom: 15,
-    padding: 10,
+  loadingText: { fontSize: 18, color: '#666', marginTop: 10 },
+  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#007bff', textAlign: 'center' },
+  card: {
     backgroundColor: '#fff',
-    borderRadius: 8,
-  },
-  itemText: {
-    fontSize: 18,
-    color: '#333',
-    marginBottom: 10, // Espaçamento entre texto e botões
-    flexWrap: 'wrap', // Permite quebra de linha no texto
-  },
-  radioButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly', // Garante espaçamento uniforme
-    alignItems: 'center',
-    flexWrap: 'wrap', // Botões se ajustam se o espaço for pequeno
-  },
-  radioButton: {
-    padding: 10,
-    marginHorizontal: 5,
-    marginVertical: 5, // Adiciona espaçamento vertical
-    borderRadius: 5,
-    backgroundColor: '#ddd',
-    minWidth: 80, // Garante que os botões tenham um tamanho mínimo
-    alignItems: 'center', // Centraliza o texto dentro do botão
-  },
-  selectedButton: { backgroundColor: '#80deea' },
-  radioText: { fontSize: 16 },
-  finalizarButton: {
-    backgroundColor: '#007bff',
-    borderRadius: 8,
     padding: 15,
-    alignItems: 'center',
-    marginTop: 20,
+    borderRadius: 10,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
+  itemTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  radioButtonsContainer: { flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' },
+  radioButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // borderWidth: 1,
+    // borderColor: '#ccc',
+    // backgroundColor: '#f8f9fa',
+  },
+  selectedButtonSim: { backgroundColor: '#28a745', borderColor: '#28a745' },
+  selectedButtonNao: { backgroundColor: '#dc3545', borderColor: '#dc3545' },
+  radioText: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
+  finalizarButton: { backgroundColor: '#007bff', borderRadius: 10, padding: 15, alignItems: 'center', marginTop: 20 },
   finalizarButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });
-
 
 export default ChecklistItemsScreen;

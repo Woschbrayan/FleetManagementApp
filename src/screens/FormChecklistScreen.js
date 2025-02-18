@@ -4,6 +4,7 @@ import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Button, TextInput, Surface } from 'react-native-paper';
+import API_BASE_URL from './config';
 
 const FormChecklistScreen = () => {
   const [etapa, setEtapa] = useState(1);
@@ -15,14 +16,11 @@ const FormChecklistScreen = () => {
   const [observacoes, setObservacoes] = useState('');
   const navigation = useNavigation();
   const route = useRoute();
+  const { groupId, cadCodigo } = route.params;
 
-  const { groupId } = route.params;
-console.log("ID do item recebido (idItem):", groupId);
   const fetchVeiculos = async () => {
     try {
-      const response = await fetch(`https://syntron.com.br/sistemas/apis/veiculos.php?grupoid=${groupId}`);
-      // const response = await fetch('http://192.168.100.63/apis/veiculos.php');
-      console.log(response);
+      const response = await fetch(`${API_BASE_URL}/veiculos.php?grupoid=${groupId}`);
       const result = await response.json();
       if (result.status === 'success') {
         setVeiculos(result.data);
@@ -30,7 +28,6 @@ console.log("ID do item recebido (idItem):", groupId);
         Alert.alert('Erro', 'Não foi possível carregar os veículos.');
       }
     } catch (error) {
-      console.error('Erro ao buscar veículos:', error);
       Alert.alert('Erro', 'Não foi possível conectar à API.');
     }
   };
@@ -39,68 +36,76 @@ console.log("ID do item recebido (idItem):", groupId);
     fetchVeiculos();
   }, []);
 
+  const formatarData = (dataIso) => {
+    if (!dataIso) return "Data não disponível";
+    const dataObj = new Date(dataIso);
+    const dia = String(dataObj.getDate()).padStart(2, "0");
+    const mes = String(dataObj.getMonth() + 1).padStart(2, "0");
+    const ano = dataObj.getFullYear();
+    return `${dia}/${mes}/${ano}`;
+  };
+
   const handleSubmit = () => {
     if (!veiculoSelecionado || !km || !observacoes) {
       Alert.alert('Erro', 'Preencha todos os campos obrigatórios.');
       return;
     }
 
-    // Dados do formulário
     const checklistData = {
+      cadCodigo,
       groupId,
       veiculoSelecionado,
       km,
       dataTrocaOleo: dataTrocaOleo.toISOString().split('T')[0],
       observacoes,
     };
-    console.log("ID do item recebido (idItem):", groupId);
-    // Navegar para a próxima tela passando os dados do formulário
+
     navigation.navigate('ChecklistItemsScreen', { checklistData });
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Preencha os Dados do Checklist</Text>
-
-      {/* Etapa 1 */}
+      {/* Etapa 1: Seleção de Veículo + KM + Data da Troca de Óleo */}
       {etapa === 1 && (
         <Surface style={styles.step}>
-          <Text style={styles.stepHeader}>Etapa 1: Selecione o Veículo</Text>
-          <Picker
-            selectedValue={veiculoSelecionado}
-            onValueChange={(itemValue) => setVeiculoSelecionado(itemValue)}
-            style={styles.picker}
-          >
-            <Picker.Item label="Selecione um veículo" value="" />
-            {veiculos.map((veiculo) => (
-              <Picker.Item
-                key={String(veiculo.vei_codigo)}
-                label={veiculo.veiculo_detalhes}
-                value={String(veiculo.vei_codigo)}
-              />
-            ))}
-          </Picker>
-        </Surface>
-      )}
+          <View style={styles.inputContainer}>
+            <Text style={styles.stepHeader}>🚗 Selecione o Veículo</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={veiculoSelecionado}
+                onValueChange={(itemValue) => setVeiculoSelecionado(itemValue)}
+                style={styles.pickerStyled}
+              >
+                <Picker.Item label="Selecione um veículo" value="" />
+                {veiculos.map((veiculo) => (
+                  <Picker.Item
+                    key={String(veiculo.vei_codigo)}
+                    label={veiculo.veiculo_detalhes}
+                    value={String(veiculo.vei_codigo)}
+                  />
+                ))}
+              </Picker>
+            </View>
+          </View>
 
-      {/* Etapa 2 */}
-      {etapa === 2 && (
-        <Surface style={styles.step}>
-          <Text style={styles.stepHeader}>Etapa 2: Preencha os Dados</Text>
+          <Text style={styles.stepHeader}>📍 KM Atual</Text>
           <TextInput
-            label="KM Atual"
+            label="Informe o KM"
             mode="outlined"
             keyboardType="numeric"
             value={km}
             onChangeText={setKm}
             style={styles.input}
+            theme={{ colors: { primary: '#007BFF' } }} // Azul padrão
           />
+
+          <Text style={styles.stepHeader}>📅 Data da Troca de Óleo</Text>
           <Button
             mode="contained"
             onPress={() => setShowDatePicker(true)}
-            style={styles.button}
+            style={styles.dateButton}
           >
-            Data da Troca de Óleo: {dataTrocaOleo.toISOString().split('T')[0]}
+            {formatarData(dataTrocaOleo)}
           </Button>
           {showDatePicker && (
             <DateTimePicker
@@ -116,17 +121,18 @@ console.log("ID do item recebido (idItem):", groupId);
         </Surface>
       )}
 
-      {/* Etapa 3 */}
-      {etapa === 3 && (
+      {/* Etapa 2: Observações */}
+      {etapa === 2 && (
         <Surface style={styles.step}>
-          <Text style={styles.stepHeader}>Etapa 3: Observações</Text>
+          <Text style={styles.stepHeader}>📝 Observações</Text>
           <TextInput
-            label="Observações"
+            label="Digite as observações"
             mode="outlined"
             multiline
             value={observacoes}
             onChangeText={setObservacoes}
             style={[styles.input, styles.textArea]}
+            theme={{ colors: { primary: '#007BFF' } }} // Azul padrão
           />
         </Surface>
       )}
@@ -142,7 +148,7 @@ console.log("ID do item recebido (idItem):", groupId);
             Voltar
           </Button>
         )}
-        {etapa < 3 ? (
+        {etapa < 2 ? (
           <Button
             mode="contained"
             onPress={() => setEtapa(etapa + 1)}
@@ -154,9 +160,9 @@ console.log("ID do item recebido (idItem):", groupId);
           <Button
             mode="contained"
             onPress={handleSubmit}
-            style={styles.buttonNext}
+            style={styles.buttonSubmit}
           >
-            Avançar para Itens do Checklist
+             Finalizar 
           </Button>
         )}
       </View>
@@ -165,16 +171,75 @@ console.log("ID do item recebido (idItem):", groupId);
 };
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 20 },
-  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  step: { marginBottom: 20, padding: 15,  elevation: 3 },
-  stepHeader: { fontSize: 20, fontWeight: '600', marginBottom: 10 },
-  // picker: { height: 50, marginBottom: 15 },
-  input: { marginBottom: 15 },
-  textArea: { height: 100, textAlignVertical: 'top' },
-  buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 120 },
-  buttonBack: { flex: 1, marginHorizontal: 5, borderWidth: 1, borderColor: '#ccc', backgroundColor: 'white' },
-  buttonNext: { flex: 1, marginHorizontal: 5, backgroundColor: '#007BFF' },
+  container: {
+    flexGrow: 1,
+    padding: 20,
+    backgroundColor: '#F8F9FA',
+  },
+  step: {
+    marginBottom: 20,
+    padding: 26,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+  },
+  stepHeader: {
+    marginTop: 10,
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 15,
+    color: '#333',
+  },
+  pickerContainer: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    // borderColor: '#007BFF', // Azul padrão
+    borderRadius: 5,
+    // paddingVertical: 1,
+    paddingHorizontal: 10,
+  },
+  pickerStyled: {
+    height: 50,
+    color: '#333',
+  },
+  input: {
+    backgroundColor: '#FFF',
+    marginBottom: 15,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  dateButton: {
+    marginTop: 10,
+    backgroundColor: '#007BFF', // Azul padrão
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 40,
+  },
+  buttonBack: {
+    flex: 1,
+    marginHorizontal: 5,
+    borderColor: '#007BFF',
+    backgroundColor: 'white',
+    borderWidth: 1,
+  },
+  buttonNext: {
+    flex: 1,
+    marginHorizontal: 5,
+    backgroundColor: '#007BFF',
+  },
+  buttonSubmit: {
+    flex: 1,
+    marginHorizontal: 5,
+    backgroundColor: '#007BFF',
+  },
 });
 
 export default FormChecklistScreen;

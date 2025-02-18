@@ -8,8 +8,8 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-
-const checklistForm = ({ route, navigation }) => {
+import API_BASE_URL from "./config";
+const ChecklistForm = ({ route, navigation }) => {
   const { osCodigo, tipo } = route.params;
   const [nome, setNome] = useState("");
   const [cpf, setCpf] = useState("");
@@ -41,7 +41,7 @@ const checklistForm = ({ route, navigation }) => {
     };
 
     try {
-      const response = await fetch("https://syntron.com.br/sistemas/apis/checkListEnvia.php", {
+      const response = await fetch(`${API_BASE_URL}/checkListEnvia.php`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -226,4 +226,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default checklistForm;
+export default ChecklistForm;

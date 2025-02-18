@@ -2,7 +2,7 @@
   "expo": {
     "name": "eloinfraestrutura",
     "slug": "eloinfraestrutura",
-    "version": "1.0.2",
+    "version": "1.0.9",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -11,6 +11,11 @@
       "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     },
     "ios": {
       "supportsTablet": true
@@ -22,13 +27,24 @@
       },
       "permissions": [
         "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
         "INTERNET",
         "WRITE_EXTERNAL_STORAGE",
         "READ_EXTERNAL_STORAGE",
-         "com.google.android.gms.permission.AD_ID"
+        "VIBRATE",
+        "RECORD_AUDIO",
+        "READ_PHONE_STATE",
+        "WAKE_LOCK",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_WIFI_STATE",
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "com.google.android.gms.permission.AD_ID"
       ],
       "package": "com.brayanwosch.eloinfraestrutura",
-      "versionCode":7
+      "versionCode": 12
     },
     "web": {
       "favicon": "./assets/icon.png"

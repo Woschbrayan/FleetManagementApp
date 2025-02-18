@@ -9,12 +9,12 @@ import {
   Alert,
 } from "react-native";
 import { Card, Icon, Button } from "react-native-elements";
-
+import API_BASE_URL from "./config";
 // Constantes de URL da API
-const API_BASE_URL = "https://syntron.com.br/sistemas/apis/ordensSevico.php?status=orcamentos";
-const API_SEND_URL = "https://syntron.com.br/sistemas/apis/enviarAvaliacao.php";
+const API_BASE_URL_ORDEN = `${API_BASE_URL}/ordensSevico.php?status=orcamentos`;
+const API_SEND_URL = `${API_BASE_URL}/enviarAvaliacao.php`;
 
-const credenciadoscreen = ({ navigation, route }) => {
+const Credenciadoscreen = ({ navigation, route }) => {
   const { cadCodigo, nivelAcesso } = route.params || {};
 
   const [ordens, setOrdens] = useState([]);
@@ -49,7 +49,7 @@ const credenciadoscreen = ({ navigation, route }) => {
 
   // Fetch Ordens de Serviço
   useEffect(() => {
-    fetch(API_BASE_URL)
+    fetch(API_BASE_URL_ORDEN)
       .then((response) => response.json())
       .then((data) => {
         setOrdens(data);
@@ -97,7 +97,7 @@ const credenciadoscreen = ({ navigation, route }) => {
   };
 
   const handleReabrirOrcamento = (orcamentoId, osId) => {
-    fetch("https://syntron.com.br/sistemas/apis/reabreReplica.php", {
+    fetch(`${API_BASE_URL}/reabreReplica.php`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -123,7 +123,7 @@ const credenciadoscreen = ({ navigation, route }) => {
   };
   
   const handleReplicarOrcamento = (orcamentoId, osId) => {
-    fetch("https://syntron.com.br/sistemas/apis/reabreReplica.php", {
+    fetch(`${API_BASE_URL}/reabreReplica.php`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -377,4 +377,4 @@ const styles = StyleSheet.create({
   
 });
 
-export default credenciadoscreen;
+export default Credenciadoscreen;

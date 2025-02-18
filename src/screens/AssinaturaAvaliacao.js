@@ -10,7 +10,7 @@ import {
 } from "react-native";
 // import * as ImagePicker from "expo-image-picker";
 
-const assinaturaAvaliacao = ({ route, navigation }) => {
+const AssinaturaAvaliacao = ({ route, navigation }) => {
   const { osCodigo } = route.params;
   const [nome, setNome] = useState("");
   const [cpf, setCpf] = useState("");
@@ -129,4 +129,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default assinaturaAvaliacao;
+export default AssinaturaAvaliacao;

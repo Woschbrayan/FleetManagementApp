@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert } from "react-native";
-
-const API_SIGNATURES_URL = "https://syntron.com.br/sistemas/apis/signatures.php";
+import API_BASE_URL from "./config";
+const API_SIGNATURES_URL =  `${API_BASE_URL}/signatures.php`;
 
 const AssinaturasorcScreen = ({ route }) => {
   const { orcCodigo } = route.params;

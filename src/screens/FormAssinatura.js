@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Button, ScrollView, Alert, StyleSheet, Image } from "react-native";
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  Button, 
+  ScrollView, 
+  Alert, 
+  StyleSheet, 
+  Image 
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
+
+import API_BASE_URL from "./config"; // Importando a variável
 
 const FormAssinatura = ({ route }) => {
   const { cadCodigo, nivelAcesso, osCodigo } = route?.params || {}; // Valores padrão para testes
@@ -13,25 +24,37 @@ const FormAssinatura = ({ route }) => {
   });
 
   useEffect(() => {
-    const requestPermissions = async () => {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permissão necessária", "Precisamos da permissão para acessar sua galeria.");
-      }
-    };
-    requestPermissions();
+    if (nivelAcesso === 252) {
+      const requestPermissions = async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permissão necessária", "Precisamos da permissão para acessar sua câmera.");
+        }
+      };
+      requestPermissions();
+    }
   }, []);
 
-  const handleChange = (name, value) => {
-    setFormData((prevState) => ({ ...prevState, [name]: value }));
+  // Função para validar CPF (verifica se tem 11 números)
+  const validarCPF = (cpf) => {
+    const cpfNumerico = cpf.replace(/\D/g, ""); // Remove caracteres não numéricos
+    return cpfNumerico.length === 11;
   };
 
+  // Função para formatar CPF no padrão 000.000.000-00
+  const formatarCPF = (cpf) => {
+    const cpfNumerico = cpf.replace(/\D/g, ""); // Remove caracteres não numéricos
+    if (cpfNumerico.length === 11) {
+      return cpfNumerico.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+    }
+    return cpf; // Retorna sem alteração se não tiver 11 dígitos
+  };
+
+  // Função para capturar imagem
   const handleFileChange = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
-        aspect: [4, 3],
         quality: 1,
       });
 
@@ -39,48 +62,71 @@ const FormAssinatura = ({ route }) => {
         setFormData((prevState) => ({ ...prevState, photo: result.assets[0] }));
       }
     } catch (error) {
-      console.error("Erro ao selecionar imagem: ", error);
+      console.error("Erro ao capturar imagem: ", error);
     }
   };
 
+  // Função para validar e enviar os dados
   const handleSubmit = async () => {
-    // Verificação de campos obrigatórios simples
+    // Verifica se todos os campos foram preenchidos
     if (!formData.name || !formData.cpf || !formData.description) {
-      Alert.alert("Erro", "Por favor, preencha todos os campos.");
+      Alert.alert("Erro", "Por favor, preencha todos os campos obrigatórios.");
       return;
     }
-  
-    // Cria o payload JSON com todos os valores necessários
-    const payload = {
-      registro: osCodigo, // Código do registro
-      usuariocodigo: cadCodigo, // Código do usuário
-      name: formData.name, // Nome do usuário
-      cpf: formData.cpf, // CPF do usuário
-      description: formData.description, // Descrição inserida
-      nivelacesso: nivelAcesso, // Nível de acesso do usuário
-      photo: formData.photo ? formData.photo.uri : null, // URI da foto, se disponível
-    };
-  
-    console.log("Dados Enviados:", payload);
-  
+
+    // Valida o CPF antes de enviar
+    if (!validarCPF(formData.cpf)) {
+      Alert.alert("Erro", "CPF inválido. Certifique-se de que possui 11 dígitos numéricos.");
+      return;
+    }
+
+    // Formata o CPF corretamente
+    const cpfFormatado = formatarCPF(formData.cpf);
+
+    const payload = new FormData();
+    payload.append("registro", osCodigo);
+    payload.append("usuariocodigo", cadCodigo);
+    payload.append("name", formData.name);
+    payload.append("cpf", cpfFormatado);
+    payload.append("description", formData.description);
+    payload.append("nivelacesso", nivelAcesso);
+    
+    if (nivelAcesso === 252 && formData.photo) {
+      payload.append("photo", {
+        uri: formData.photo.uri,
+        name: `foto_${Date.now()}.jpg`,
+        type: "image/jpeg",
+      });
+    }
+
+    console.log("Enviando dados:", payload);
+
     try {
-      const response = await fetch(
-        "https://syntron.com.br/sistemas/apis/regsitro_assinatura.php?acao=Assinado",
-        {
+      const response = await fetch(`${API_BASE_URL}/regsitro_assinatura.php?acao=Assinado`,{
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "multipart/form-data",
           },
-          body: JSON.stringify(payload),
+          body: payload,
         }
       );
-  
-      const result = await response.json();
-      console.log("Resposta da API:", result);
-  
+
+      const text = await response.text();
+      console.log("Resposta do servidor:", text);
+
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (jsonError) {
+        console.error("Erro ao converter JSON:", jsonError);
+        Alert.alert("Erro", "A resposta do servidor não está no formato JSON esperado.");
+        return;
+      }
+
+      console.log("Resposta JSON da API:", result);
+
       if (response.ok) {
         Alert.alert("Sucesso", "Registro de assinatura inserido com sucesso!");
-        // Reseta o formulário
         setFormData({
           name: "",
           cpf: "",
@@ -88,7 +134,7 @@ const FormAssinatura = ({ route }) => {
           photo: null,
         });
       } else {
-        Alert.alert("Erro", result.message || "Erro ao inserir registro. Tente novamente.");
+        Alert.alert("Erro", result.message || "Erro ao inserir registro.");
       }
     } catch (error) {
       console.error("Erro:", error);
@@ -105,7 +151,7 @@ const FormAssinatura = ({ route }) => {
         <TextInput
           style={styles.input}
           value={formData.name}
-          onChangeText={(text) => handleChange("name", text)}
+          onChangeText={(text) => setFormData({ ...formData, name: text })}
           placeholder="Digite seu nome"
         />
       </View>
@@ -115,9 +161,10 @@ const FormAssinatura = ({ route }) => {
         <TextInput
           style={styles.input}
           value={formData.cpf}
-          onChangeText={(text) => handleChange("cpf", text)}
+          onChangeText={(text) => setFormData({ ...formData, cpf: formatarCPF(text) })}
           placeholder="Digite seu CPF"
           keyboardType="numeric"
+          maxLength={14} // Garante que o CPF não ultrapasse o formato correto
         />
       </View>
 
@@ -126,23 +173,26 @@ const FormAssinatura = ({ route }) => {
         <TextInput
           style={[styles.input, styles.textArea]}
           value={formData.description}
-          onChangeText={(text) => handleChange("description", text)}
+          onChangeText={(text) => setFormData({ ...formData, description: text })}
           placeholder="Descrição"
           multiline
         />
       </View>
 
-      <View style={styles.photoSection}>
-        <Button title="Escolher Foto da Galeria" onPress={handleFileChange} />
-        {formData.photo && formData.photo.uri ? (
-          <Image source={{ uri: formData.photo.uri }} style={styles.photoPreview} />
-        ) : null}
-      </View>
+      {nivelAcesso === 252 && (
+        <View style={styles.photoSection}>
+          <Button title="Tirar Foto" onPress={handleFileChange} />
+          {formData.photo && formData.photo.uri ? (
+            <Image source={{ uri: formData.photo.uri }} style={styles.photoPreview} />
+          ) : null}
+        </View>
+      )}
 
       <Button title="Assinar" onPress={handleSubmit} color="#28a745" />
     </ScrollView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

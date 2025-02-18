@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Card, Button, CheckBox } from "react-native-elements";
 import moment from "moment";
-
+import API_BASE_URL from "./config";
 const RealizarChecklist = ({ route, navigation }) => {
   const { osId, type, cadCodigo } = route.params;
   const [step, setStep] = useState(1); // Controla a etapa do formulário
@@ -44,7 +44,7 @@ const RealizarChecklist = ({ route, navigation }) => {
 
     console.log("Payload enviado:", JSON.stringify(payload, null, 2)); // Log para verificar o payload
 
-    fetch("https://syntron.com.br/sistemas/apis/saveChecklist.php", {
+    fetch(`${API_BASE_URL}/saveChecklist.php`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

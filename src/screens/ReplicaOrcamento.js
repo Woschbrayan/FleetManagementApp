@@ -9,19 +9,19 @@ import {
 } from "react-native";
 
 import { Picker } from "@react-native-picker/picker";
-
+import API_BASE_URL from "./config";
 const ReplicaOrcamento = ({ route }) => {
   const [credenciados, setCredenciados] = useState([]);
   const [selectedCredenciado, setSelectedCredenciado] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const API_REPLICAR_URL = "https://syntron.com.br/sistemas/apis/reabreReplica.php";
+  const API_REPLICAR_URL =  `${API_BASE_URL}/reabreReplica.php`;
 
   // Função para buscar os credenciados
   const fetchCredenciados = async (osId, orcamentoId) => {
     setLoading(true);
     try {
-      const API_CREDENCIADOS_URL = "https://syntron.com.br/sistemas/apis/reabreReplica.php";
+      const API_CREDENCIADOS_URL = `${API_BASE_URL}/reabreReplica.php`;
       console.log("Enviando parâmetros:", { osId, orcamentoId });
 
       const response = await fetch(API_CREDENCIADOS_URL, {

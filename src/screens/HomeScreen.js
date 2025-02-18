@@ -45,12 +45,12 @@ const HomeScreen = ({ navigation, route }) => {
     };
 
     const opcoes = [
-      { id: '1', titulo: 'CheckList', destino: 'CheckList', icone: require('../../assets/icons/checklist.png') },
-      { id: '2', titulo: 'Rastreamento', destino: 'Rastreamento', icone: require('../../assets/icons/rastreamento.png') },
-      { id: '3', titulo: 'Ordens de Serviço', destino: 'OrdensServico', icone: require('../../assets/icons/manutencao.png') },
-      { id: '4', titulo: 'Relatórios', destino: 'relatoriosScreens', icone: require('../../assets/icons/relatorios.png') },
-      { id: '5', titulo: 'Gerencia R.O', destino: 'GerenciaRoScreen', icone: require('../../assets/icons/relatorios.png') },
-      { id: '6', titulo: 'DashBoards', destino: 'Manutencao', icone: require('../../assets/icons/manutencao.png') },
+      { id: '1', titulo: 'Check Lsit', destino: 'CheckList', icone: require('../../assets/icons/checklsitveiculo.png') },
+      { id: '2', titulo: 'Rastreamento', destino: 'Rastreamento', icone: require('../../assets/icons/rastreio.png') },
+      { id: '3', titulo: 'Ordens de Serviço', destino: 'OrdensServico', icone: require('../../assets/icons/ordensdeservico.png') },
+      { id: '4', titulo: 'Relatórios', destino: 'relatoriosScreens', icone: require('../../assets/icons/relatorio.png') },
+      { id: '5', titulo: 'Gerencia R.O', destino: 'GerenciaRoScreen', icone: require('../../assets/icons/registroOcorrenciaicon.png') },
+      { id: '6', titulo: 'DashBoards', destino: 'Manutencao', icone: require('../../assets/icons/dash.png') },
     ];
 
     // Filtrar as opções com base no nível de acesso

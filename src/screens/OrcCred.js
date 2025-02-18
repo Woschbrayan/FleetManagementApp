@@ -8,38 +8,45 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { Card, Icon } from "react-native-elements";
-
+import { Icon } from "react-native-elements"; // Para ícones (font-awesome)
+import API_BASE_URL from "./config";
 
 const OrcCred = ({ navigation, route }) => {
- 
   const [ordens, setOrdens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOS, setExpandedOS] = useState(null);
-  const { cadCodigo, cadNome, nomeNivel, nivelAcesso } = route.params || {};
 
+  // Recebendo parâmetros da rota
+  const { cadCodigo, cadNome, nomeNivel, nivelAcesso } = route.params || {};
   console.log("Parâmetros recebidos:", { cadCodigo, cadNome, nomeNivel, nivelAcesso });
-  const API_BASE_URL = `https://syntron.com.br/sistemas/apis/ordensSevicoCredenciado.php?cadCodigo=${cadCodigo}`;
+
+  // Monta a URL com cadCodigo
+  const API_BASE_URL_ORDEM = `${API_BASE_URL}/ordensSevicoCredenciado.php?cadCodigo=${cadCodigo}`;
 
   // Fetch Ordens de Serviço
   useEffect(() => {
-    fetch(API_BASE_URL)
-      .then((response) => response.json())
-      .then((data) => {
+    const fetchOrdens = async () => {
+      try {
+        const response = await fetch(API_BASE_URL_ORDEM);
+        const data = await response.json();
         console.log("Dados recebidos da API:", JSON.stringify(data, null, 2));
         setOrdens(data);
-        setLoading(false);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Erro ao buscar ordens:", error);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchOrdens();
   }, []);
 
+  // Expande ou recolhe a OS
   const toggleDropdown = (osId) => {
     setExpandedOS(expandedOS === osId ? null : osId);
   };
 
+  // Confirmar e encerrar orçamento
   const handleEncerrarOrcamento = (orcCodigo) => {
     Alert.alert(
       "Confirmar Encerramento",
@@ -49,7 +56,7 @@ const OrcCred = ({ navigation, route }) => {
         {
           text: "Confirmar",
           onPress: () => {
-            fetch("https://syntron.com.br/sistemas/apis/encerrarOrcamento.php", {
+            fetch(`${API_BASE_URL}/encerrarOrcamento.php`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -60,6 +67,7 @@ const OrcCred = ({ navigation, route }) => {
               .then((data) => {
                 if (data.success) {
                   Alert.alert("Sucesso", "Orçamento encerrado com sucesso!");
+                  // Atualiza estado local
                   setOrdens((prev) =>
                     prev.map((os) => ({
                       ...os,
@@ -87,6 +95,7 @@ const OrcCred = ({ navigation, route }) => {
     );
   };
 
+  // Renderiza cada item do orçamento
   const renderItemDetails = (item, orcamentoId, osId, orcEncerrado) => {
     const isPeca = item.oit_peca_servico === "1";
     const quantidade = isPeca
@@ -116,15 +125,17 @@ const OrcCred = ({ navigation, route }) => {
             </TouchableOpacity>
           )}
         </View>
-        <Text style={styles.itemDetails}>{`Quantidade: ${
-          !isNaN(quantidade) ? quantidade.toFixed(1) : "N/A"
-        }`}</Text>
-        <Text style={styles.itemDetails}>{`Valor Unitário: R$ ${
-          !isNaN(valor) ? valor.toFixed(2) : "N/A"
-        }`}</Text>
-        <Text style={styles.itemDetails}>{`Valor Total: R$ ${
-          !isNaN(valorTotal) ? valorTotal.toFixed(2) : "N/A"
-        }`}</Text>
+        <Text style={styles.itemDetails}>
+          Quantidade: {Number.isFinite(quantidade) ? quantidade.toFixed(1) : "N/A"}
+        </Text>
+        <Text style={styles.itemDetails}>
+          Valor Unitário: R${" "}
+          {Number.isFinite(valor) ? valor.toFixed(2) : "N/A"}
+        </Text>
+        <Text style={styles.itemDetails}>
+          Valor Total: R${" "}
+          {Number.isFinite(valorTotal) ? valorTotal.toFixed(2) : "N/A"}
+        </Text>
       </View>
     );
   };
@@ -138,59 +149,79 @@ const OrcCred = ({ navigation, route }) => {
     );
   }
 
-  return (
-    <FlatList
-      data={ordens}
-      keyExtractor={(item) => item.os_codigo.toString()}
-      renderItem={({ item }) => (
-        <Card containerStyle={styles.card}>
-          <Card.Title>{`OS: ${item.os_codigo}`}</Card.Title>
-          <Card.Divider />
-          <View style={styles.cardContent}>
-            <Text>{`Veículo: ${item.veiculo_detalhes || "Não informado"}`}</Text>
-            <Text>{`Data: ${item.os_data_lancamento}`}</Text>
-            <Text>{`Observação: ${item.os_obs}`}</Text>
-          </View>
+  // Renderiza cada OS
+  const renderOS = ({ item }) => {
+    const isExpanded = expandedOS === item.os_codigo;
 
-          <View style={styles.cardActions}>
-            <TouchableOpacity onPress={() => toggleDropdown(item.os_codigo)}>
-              <Icon
-                name={
-                  expandedOS === item.os_codigo
-                    ? "keyboard-arrow-up"
-                    : "keyboard-arrow-down"
-                }
-                size={30}
-                color="#4CAF50"
-              />
-            </TouchableOpacity>
-          </View>
+    // Calcula a exibição do "dropdown" e do conteúdo
+    return (
+      <View style={styles.card}>
+        {/* Cabeçalho da OS */}
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>{`Ordem de Serviço: ${item.os_codigo}`}</Text>
+          <TouchableOpacity onPress={() => toggleDropdown(item.os_codigo)}>
+            <Icon
+              name={isExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+              size={28}
+              color="#4CAF50"
+            />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.divider} />
 
-          {expandedOS === item.os_codigo && (
-            <View style={styles.dropdown}>
-              <Text style={styles.dropdownTitle}>Orçamentos</Text>
-              {item.orcamentos && item.orcamentos.length > 0 ? (
-                item.orcamentos.map((orc) => (
-                  <View key={orc.orc_codigo} style={styles.orcamentoItem}>
+        {/* Conteúdo principal da OS */}
+        <View style={styles.cardContent}>
+          {/* Ícone "🚗" para veículo */}
+          <Text style={styles.infoText}>
+            <Text style={styles.bold}>🚗 Veículo:</Text>{" "}
+            {item.veiculo_detalhes || "Não informado"}
+          </Text>
+          <Text style={styles.infoText}>
+            <Text style={styles.bold}>📅 Data:</Text> {item.os_data_lancamento}
+          </Text>
+          <Text style={styles.infoText}>
+            <Text style={styles.bold}>📝 Observação:</Text> {item.os_obs}
+          </Text>
+        </View>
+
+        {/* Se expandido, exibe orçamentos */}
+        {isExpanded && (
+          <View style={styles.orcamentosContainer}>
+            <Text style={styles.orcamentosTitle}>Orçamentos</Text>
+            {item.orcamentos && item.orcamentos.length > 0 ? (
+              item.orcamentos.map((orc) => {
+                const valorTotalOrcamento =
+                  (parseFloat(orc.orc_vlr_total_pecas) || 0) +
+                  (parseFloat(orc.orc_vlr_total_mao_de_obra) || 0);
+
+                return (
+                  <View key={orc.orc_codigo} style={styles.orcamentoCard}>
                     <View style={styles.orcamentoHeader}>
-                      <Text style={styles.orcamentoTitle}>{`Orçamento: ${orc.orc_codigo}`}</Text>
+                      <Text style={styles.orcamentoTitle}>
+                        Orçamento: {orc.orc_codigo}
+                      </Text>
                       <Text style={styles.orcamentoStatus}>
                         {orc.orc_encerrado && orc.orc_encerrado.trim() === "S"
-                          ? "Orçamento Encerrado"
+                          ? "Encerrado"
                           : "Lançada"}
                       </Text>
                     </View>
 
-                    <Text>{`Valor Total: R$ ${(
-                      Number(orc.orc_vlr_total_pecas) +
-                      Number(orc.orc_vlr_total_mao_de_obra)
-                    ).toFixed(2)}`}</Text>
-                    <Text>{`Valor Peças: R$ ${orc.orc_vlr_total_pecas}`}</Text>
-                    <Text>{`Valor Serviços: R$ ${orc.orc_vlr_total_mao_de_obra}`}</Text>
+                    <Text style={styles.orcamentoText}>
+                      Valor Total: R${valorTotalOrcamento.toFixed(2)}
+                    </Text>
+                    <Text style={styles.orcamentoText}>
+                      Valor Peças: R${(parseFloat(orc.orc_vlr_total_pecas) || 0).toFixed(2)}
+                    </Text>
+                    <Text style={styles.orcamentoText}>
+                      Valor Serviços: R${(parseFloat(orc.orc_vlr_total_mao_de_obra) || 0).toFixed(2)}
+                    </Text>
 
+                    {/* Botões para encerrar ou adicionar item */}
                     {orc.orc_encerrado !== "S" && (
-                      <View style={styles.orcamentoActions}>
+                      <View style={styles.actionsRow}>
                         <TouchableOpacity
+                          style={styles.actionButton}
                           onPress={() =>
                             navigation.navigate("ItemForm", {
                               osId: item.os_codigo,
@@ -208,9 +239,8 @@ const OrcCred = ({ navigation, route }) => {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                          onPress={() =>
-                            handleEncerrarOrcamento(orc.orc_codigo)
-                          }
+                          style={styles.actionButton}
+                          onPress={() => handleEncerrarOrcamento(orc.orc_codigo)}
                         >
                           <Icon
                             name="lock"
@@ -222,12 +252,13 @@ const OrcCred = ({ navigation, route }) => {
                       </View>
                     )}
 
+                    {/* Lista de itens */}
                     <FlatList
                       data={orc.itens}
-                      keyExtractor={(item) => item.id.toString()}
-                      renderItem={({ item }) =>
+                      keyExtractor={(detalhe) => detalhe.id.toString()}
+                      renderItem={({ item: itemDetalhe }) =>
                         renderItemDetails(
-                          item,
+                          itemDetalhe,
                           orc.orc_codigo,
                           item.os_codigo,
                           orc.orc_encerrado
@@ -235,89 +266,178 @@ const OrcCred = ({ navigation, route }) => {
                       }
                     />
                   </View>
-                ))
-              ) : (
-                <Text>Nenhum orçamento encontrado.</Text>
-              )}
-            </View>
-          )}
-        </Card>
-      )}
+                );
+              })
+            ) : (
+              <Text style={styles.noOrcamentosText}>
+                Nenhum orçamento encontrado.
+              </Text>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  return (
+    <FlatList
+      data={ordens}
+      keyExtractor={(item) => item.os_codigo.toString()}
+      renderItem={renderOS}
+      ListEmptyComponent={
+        <Text style={styles.emptyListText}>Nenhuma Ordem de Serviço encontrada.</Text>
+      }
     />
   );
 };
 
+export default OrcCred;
+
 const styles = StyleSheet.create({
+  // Carregando
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#F5F5F5",
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
     color: "#555",
   },
+  emptyListText: {
+    textAlign: "center",
+    marginTop: 20,
+    fontSize: 16,
+    color: "#666",
+  },
+
+  // Card principal da OS
   card: {
+    backgroundColor: "#FFF",
     borderRadius: 10,
     padding: 15,
-  },
-  dropdown: {
-    marginTop: 10,
-    padding: 10,
-    borderRadius: 5,
-    backgroundColor: "#F9F9F9",
-  },
-  orcamentoItem: {
-    marginBottom: 10,
-    padding: 10,
-    borderRadius: 5,
-    backgroundColor: "#FFFFFF",
-  },
-  itemContainer: {
     marginVertical: 8,
+    marginHorizontal: 10,
+
+    // Sombra
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#007BFF",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#DDD",
+    marginVertical: 10,
+  },
+  cardContent: {
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 16,
+    color: "#333",
+    marginBottom: 4,
+  },
+  bold: {
+    fontWeight: "bold",
+  },
+
+  // Container de orçamentos
+  orcamentosContainer: {
+    marginTop: 10,
+    backgroundColor: "#F9F9F9",
+    borderRadius: 8,
     padding: 10,
+  },
+  orcamentosTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#444",
+    marginBottom: 6,
+  },
+  orcamentoCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 10,
+
+    // Sombra
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  orcamentoHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 5,
+  },
+  orcamentoTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#007BFF",
+  },
+  orcamentoStatus: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#666",
+  },
+  orcamentoText: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 3,
+  },
+  actionsRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 8,
+  },
+  actionButton: {
+    marginLeft: 12,
+  },
+  noOrcamentosText: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+    textAlign: "center",
+    marginTop: 8,
+  },
+
+  // Itens do orçamento
+  itemContainer: {
     backgroundColor: "#EFEFEF",
     borderRadius: 5,
+    padding: 10,
+    marginVertical: 6,
   },
   itemRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 4,
   },
   itemDescription: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "bold",
+    color: "#333",
   },
   itemDetails: {
     fontSize: 14,
     color: "#555",
-  },
-  cardActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  dropdownTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  orcamentoTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 5,
-  },
-  orcamentoStatus: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#555",
-    marginTop: 5,
-  },
-  orcamentoActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
+    marginBottom: 2,
   },
 });
-
-export default OrcCred;

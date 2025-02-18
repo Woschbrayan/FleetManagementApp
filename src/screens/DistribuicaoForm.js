@@ -9,10 +9,10 @@ import {
   ScrollView,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
-
+import API_BASE_URL from "./config";
 // const API_ENDPOINT ="http://192.168.100.63/apis/inserirCotacao.php?action=inserirCredenciado";
 
-const API_ENDPOINT ="https://syntron.com.br/sistemas/apis/inserirCotacao.php?action=inserirCredenciado";
+const API_ENDPOINT =`${API_BASE_URL}/inserirCotacao.php?action=inserirCredenciado`;
 const DistribuicaoForm = () => {
   const route = useRoute(); // Hook para obter os parâmetros da rota
   const navigation = useNavigation(); // Hook para navegação
