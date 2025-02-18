@@ -37,7 +37,7 @@ function isNewerVersion(serverVersion, localVersion) {
   return false; // São iguais
 }
 
-// const LoginScreen = ({ navigation }) => {
+ const LoginScreen = ({ navigation }) => {
 
 //   const [bloqueado, setBloqueado] = useState(true); // Defina como true para bloquear
 
